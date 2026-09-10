@@ -1,6 +1,6 @@
 # Data Asset Analysis
 # Version: 1.0
-# Generated: 2026-09-07
+# Generated: 2026-09-10
 
 # 项目信息
 project:
@@ -178,27 +178,6 @@ business_object_assets:
           - field_name: fk_wens_recbrlrflk_pig
             description: 猪群编码
             usage: 巡查工单关联的猪群
-          - field_name: fk_wens_alert_metric
-            description: 预警指标
-            usage: 关联的预警指标
-          - field_name: fk_wens_alarm_level
-            description: 预警等级
-            usage: 关联的预警等级
-          - field_name: fk_wens_alarm_time
-            description: 预警时间
-            usage: 关联的预警时间
-          - field_name: fk_wens_status
-            description: 预警状态
-            usage: 关联的预警状态
-          - field_name: fk_wens_creator
-            description: 创建人
-            usage: 工单创建人
-          - field_name: fk_wens_auditor
-            description: 审核人
-            usage: 工单审核人
-          - field_name: fk_wens_executor
-            description: 执行人
-            usage: 工单执行人
           - field_name: fk_wens_atrol_ticket_stat
             description: 巡查工单状态
             usage: 工单当前状态（1=未完成, 2=已完成, 3=未完成(过期)）
@@ -218,9 +197,6 @@ business_object_assets:
               - field_name: fk_wens_custom_policy
                 description: 自定义策略
                 usage: 应对策略
-              - field_name: fk_wens_custom_is_execute
-                description: 是否执行
-                usage: 策略执行状态
               - field_name: fk_wens_custom_is_adopt
                 description: 是否采纳
                 usage: 策略采纳状态
@@ -230,9 +206,6 @@ business_object_assets:
               - field_name: fk_wens_handle_strategy
                 description: 应对策略
                 usage: 关联的应对策略
-              - field_name: fk_wens_is_execute
-                description: 是否执行
-                usage: 策略执行状态
               - field_name: fk_wens_is_adopt
                 description: 是否采纳
                 usage: 策略采纳状态

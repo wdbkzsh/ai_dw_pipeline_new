@@ -237,7 +237,7 @@ agents:
 
     command:
 
-      .claude/commands/data-analysis.md
+      .claude/commands/data-analysis-WENSEAS.md
 
 
 

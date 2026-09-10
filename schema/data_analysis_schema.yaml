@@ -441,7 +441,9 @@ metric_implementation_analysis:
 
         type: string
 
+      statistic_grain:
 
+        type: string
 
       source_analysis:
 
@@ -672,6 +674,30 @@ model_design_input:
 
         type: string
 
+  analysis_confirmation:
+
+
+    status:
+
+      enum:
+
+        - completed
+
+        - partial
+
+        - pending
+
+
+
+    unresolved_items:
+
+
+      type: array
+
+
+      items:
+
+        type: string
 
   confirmed_entity_relationships:
 

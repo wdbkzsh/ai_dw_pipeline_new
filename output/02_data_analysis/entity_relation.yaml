@@ -1,6 +1,6 @@
 # Entity Relation Analysis
 # Version: 1.0
-# Generated: 2026-09-07
+# Generated: 2026-09-10
 
 # 项目信息
 project:
@@ -71,14 +71,6 @@ relationships:
     business_meaning: 一个养户可以拥有多个猪群
     join_condition: wens_rearer_farm_pig.fmasterid = wens_recbrlrflk_pig.fk_wens_recrearer
     confidence: high
-    validation_sql: |
-      SELECT
-        a.fmasterid as farmer_id,
-        COUNT(DISTINCT b.fmasterid) as pig_group_count
-      FROM tk_wens_rea_farm_info a
-      LEFT JOIN tk_wens_recbrlrflk b ON a.fmasterid = b.fk_wens_recrearer
-      GROUP BY a.fmasterid
-      HAVING COUNT(DISTINCT b.fmasterid) > 1
 
   # 养户 -> 生产异常预警 (1:N)
   - relationship_id: R002
@@ -98,7 +90,6 @@ relationships:
     business_meaning: 一个养户可以有多条预警记录
     join_condition: wens_rearer_farm_pig.fmasterid = wens_production_anomaly.fk_wens_basedatafield
     confidence: high
-    validation_sql: null
 
   # 猪群 -> 生产异常预警 (1:N)
   - relationship_id: R003
@@ -118,7 +109,6 @@ relationships:
     business_meaning: 一个猪群可以有多条预警记录
     join_condition: wens_recbrlrflk_pig.fmasterid = wens_production_anomaly.fk_wens_recbrlrflk_pig
     confidence: high
-    validation_sql: null
 
   # 生产异常预警 -> 巡查工单 (1:N)
   - relationship_id: R004
@@ -138,7 +128,6 @@ relationships:
     business_meaning: 一条预警记录可以生成多条巡查工单
     join_condition: wens_production_anomaly.fbillno = wens_patrol_ticket.fk_wens_warning_billno
     confidence: high
-    validation_sql: null
 
   # 巡查工单 -> 应对策略 (N:M)
   - relationship_id: R005
@@ -158,7 +147,6 @@ relationships:
     business_meaning: 一条巡查工单可以关联多个应对策略，一个应对策略可以被多个工单使用
     join_condition: wens_patrol_ticket.tk_cause_analysis.fk_wens_handle_strategy = wens_handle_strategy.fmasterid
     confidence: high
-    validation_sql: null
 
 # ER 图描述
 er_diagram_description: |
