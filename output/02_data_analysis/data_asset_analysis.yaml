@@ -1,251 +1,460 @@
-# Data Asset Analysis
-# Version: 1.0
-# Generated: 2026-09-10
+# ==========================================
+# 数据资产分析
+# 农户生产异常预警分析
+# ==========================================
 
-# 项目信息
 project:
   project_id: wens_dw_project
-  project_name: 农户生产异常预警分析看板
+  project_name: 农户生产异常预警分析
+  business_domain: 育肥作业管理
 
-# 业务对象与源数据资产映射
-business_object_assets:
+data_asset_analysis:
+  source_layer: WENSEAS
 
-  # 养户
-  - business_object:
-      entity_id: E001
-      entity_name: 养户
-      description: 参与养殖合作的农户，是生产管理的基本单位
+  tables:
+    - table_name: wens_production_anomaly
+      physical_table: tk_wens_production_anomal
+      table_description: 农户生产异常预警单据，记录系统自动触发的生产异常预警事件
+      table_role: transaction_data
+      business_role: 预警事件主表，是核心事实数据来源
+      application: 育肥作业管理
+      databases:
+        - rearer_breeding
+        - next_rearer_fatten
+      key_fields:
+        - field_name: fbillno
+          field_usage: 单据编号，唯一标识一条预警记录
+          field_description: 单据编号
+        - field_name: fbillstatus
+          field_usage: 单据状态（A=暂存, B=已提交, C=已审核）
+          field_description: 单据状态
+        - field_name: forgid
+          field_usage: 组织维度，用于分公司级聚合
+          field_description: 组织
+        - field_name: fk_wens_basedatafield
+          field_usage: 养户维度外键，关联wens_rearer_farm_pig
+          field_description: 养户
+        - field_name: fk_wens_recbrlrflk_pig
+          field_usage: 猪群维度外键，关联wens_recbrlrflk_pig
+          field_description: 猪群编码
+        - field_name: fk_wens_alert_metric
+          field_usage: 预警指标维度（1-9枚举）
+          field_description: 预警指标
+        - field_name: fk_wens_alarm_level
+          field_usage: 预警等级维度（1-4枚举）
+          field_description: 预警等级
+        - field_name: fk_wens_alarm_value
+          field_usage: 触发预警时的数值
+          field_description: 触发预警时数值
+        - field_name: fk_wens_alarm_time
+          field_usage: 预警时间，用于时间过滤和趋势分析
+          field_description: 预警时间
+        - field_name: fk_wens_status
+          field_usage: 预警状态过滤（1=持续中, 2=已关闭, 3=仅通知）
+          field_description: 预警状态
+        - field_name: fk_wens_duration
+          field_usage: 持续时长，用于M07平均持续时长
+          field_description: 持续时长
+        - field_name: fk_wens_is_generate_ticke
+          field_usage: 是否巡查标识，用于M03/M04
+          field_description: 是否巡查
+        - field_name: fk_wens_closing_time
+          field_usage: 预警关闭时间
+          field_description: 预警关闭时间
+        - field_name: fauditorid
+          field_usage: 审核人
+          field_description: 审核人
+        - field_name: fauditdate
+          field_usage: 审核日期
+          field_description: 审核日期
+      entries:
+        - entry_name: wens_production_anomaly_e
+          entry_description: 预警接收人分录
+          key_fields:
+            - fk_wens_user (姓名)
+            - fk_wens_push_time (推送时间)
+      related_metrics:
+        - M01
+        - M02
+        - M03
+        - M04
+        - M05
+        - M06
+        - M07
+        - M08
+        - T01
+        - T02
+        - T04
+        - T05
 
-    candidate_source_tables:
-      - table_name: wens_rearer_farm_pig
-        physical_table: tk_wens_rea_farm_info
-        business_role: 主数据表
-        description: 养猪养户档案，存储养户基本信息
-        key_fields:
-          - field_name: fmasterid
-            description: 主数据内码（主键）
-            usage: 养户唯一标识
-          - field_name: fnumber
-            description: 编码
-            usage: 养户业务编码
-          - field_name: fname
-            description: 养户档案名称
-            usage: 养户名称
-          - field_name: fenable
-            description: 使用状态
-            usage: 判断养户是否可用（0=禁用, 1=可用）
-          - field_name: fk_wens_status
-            description: 饲养状态
-            usage: 判断养户是否在养（1=在养, 2=空栏中, 3=已停养, 4=销户）
-          - field_name: fstatus
-            description: 数据状态
-            usage: 判断数据是否已审核（A=暂存, B=已提交, C=已审核）
-          - field_name: fk_wens_rearer
-            description: 开户人姓名
-            usage: 养户关联的人员信息
-          - field_name: fk_wens_farm
-            description: 养殖场名称
-            usage: 养户关联的养殖场
-          - field_name: fk_wens_manager
-            description: 管理员
-            usage: 养户的管理人员
-          - field_name: forgid
-            description: 组织
-            usage: 养户所属组织
-        missing_fields: []
+    - table_name: wens_patrol_ticket
+      physical_table: tk_wens_patrol_ticket
+      table_description: 农户生产异常巡查工单，记录运营人员针对预警的巡查处理
+      table_role: transaction_data
+      business_role: 巡查工单主表，支撑有效干涉率和归因分析
+      application: 育肥作业管理
+      databases:
+        - rearer_breeding
+        - next_rearer_fatten
+      key_fields:
+        - field_name: fbillno
+          field_usage: 单据编号，唯一标识一条工单
+          field_description: 单据编号
+        - field_name: forgid
+          field_usage: 组织维度
+          field_description: 组织
+        - field_name: fk_wens_basedatafield
+          field_usage: 养户维度外键
+          field_description: 养户
+        - field_name: fk_wens_recbrlrflk_pig
+          field_usage: 猪群维度外键
+          field_description: 猪群编码
+        - field_name: fk_wens_alert_metric
+          field_usage: 预警指标
+          field_description: 预警指标
+        - field_name: fk_wens_alarm_level
+          field_usage: 预警等级
+          field_description: 预警等级
+        - field_name: fk_wens_status
+          field_usage: 预警状态
+          field_description: 预警状态
+        - field_name: fk_wens_atrol_ticket_stat
+          field_usage: 巡查工单状态（1=未完成, 2=已完成, 3=未完成(过期)）
+          field_description: 巡查工单状态
+        - field_name: fk_wens_warning_billno
+          field_usage: 关联预警单据编号，用于关联预警事件
+          field_description: 预警单据编号
+        - field_name: fk_wens_executor
+          field_usage: 执行人
+          field_description: 执行人
+      entries:
+        - entry_name: tk_cause_analysis
+          entry_description: 原因分析分录，关联应对策略
+          key_fields:
+            - fk_wens_handle_strategy (应对策略)
+            - wens_patrol_risk_category (风险大类，取自策略)
+            - wens_risk_project (风险项，取自策略)
+            - wens_wens_strategy (对应措施，取自策略)
+            - fk_wens_is_execute (是否执行)
+            - fk_wens_is_adopt (是否采纳)
+        - entry_name: tk_wens_risk_item_entry
+          entry_description: 自定义风险分录
+          key_fields:
+            - fk_wens_risk_item (自定义风险大类)
+            - fk_wens_custom_risk_iteme (自定义风险项)
+            - fk_wens_custom_policy (自定义策略)
+            - fk_wens_custom_is_execute (是否执行)
+            - fk_wens_custom_is_adopt (是否采纳)
+      related_metrics:
+        - M09
+        - T03
+        - 异常原因分布
+        - 策略有效性
 
-  # 猪群
-  - business_object:
-      entity_id: E002
-      entity_name: 猪群
-      description: 养户管理下的一个批次猪群，是生产核算的基本单位
+    - table_name: wens_rearer_farm_pig
+      physical_table: tk_wens_rea_farm_info
+      table_description: 养猪养户档案，记录养户基本信息和状态
+      table_role: dimension_data
+      business_role: 养户维度表，提供养户属性和总养户数统计
+      application: 养户基础资料
+      databases:
+        - rearer_breeding
+        - next_rearer_fatten
+      key_fields:
+        - field_name: fmasterid
+          field_usage: 主数据内码，养户唯一标识
+          field_description: 主数据内码
+        - field_name: fnumber
+          field_usage: 养户编码
+          field_description: 编码
+        - field_name: fname
+          field_usage: 养户名称
+          field_description: 养户档案名称
+        - field_name: forgid
+          field_usage: 组织
+          field_description: 组织
+        - field_name: fk_wens_farm
+          field_usage: 养殖场名称
+          field_description: 养殖场名称
+        - field_name: fk_wens_userfield
+          field_usage: 管理员（对应需求中的农户服务员）
+          field_description: 管理员
+        - field_name: fk_wens_status
+          field_usage: 饲养状态（1=在养, 2=空栏中, 3=已停养, 4=销户）
+          field_description: 饲养状态
+        - field_name: fk_wens_rearer
+          field_usage: 开户人姓名
+          field_description: 开户人姓名
+        - field_name: fk_wens_avadoptdate
+          field_usage: 加权进苗日期（来自畜禽档案，此处为养户级属性）
+          field_description: 无直接字段，需从畜禽档案获取
+      related_metrics:
+        - C01
+        - 异常农户清单
 
-    candidate_source_tables:
-      - table_name: wens_recbrlrflk_pig
-        physical_table: tk_wens_recbrlrflk
-        business_role: 主数据表
-        description: 养猪畜禽档案，存储猪群基本信息
-        key_fields:
-          - field_name: fmasterid
-            description: 主数据内码（主键）
-            usage: 猪群唯一标识
-          - field_name: fnumber
-            description: 编码
-            usage: 猪群业务编码
-          - field_name: fname
-            description: 名称
-            usage: 猪群名称
-          - field_name: fk_wens_recrearer
-            description: 养户档案名称
-            usage: 猪群关联的养户
-          - field_name: fk_wens_material
-            description: 饲养品种
-            usage: 猪群的品种信息
-          - field_name: fk_wens_flkstatus
-            description: 猪群状态
-            usage: 判断猪群状态（0=申请领苗, 1=在养, 2=已上市, 3=已结算）
-          - field_name: fk_wens_seedtime
-            description: 首次进苗日期
-            usage: 猪群的进苗时间
-          - field_name: fk_wens_stockqty
-            description: 存栏量
-            usage: 猪群当前存栏数量
-          - field_name: fk_wens_deadqty
-            description: 总死淘数
-            usage: 猪群累计死淘数量
-          - field_name: fk_wens_chickqty
-            description: 苗总数量
-            usage: 猪群进苗总数
-          - field_name: fk_wens_useorg
-            description: 业务组织
-            usage: 猪群所属组织
-        missing_fields: []
+    - table_name: wens_recbrlrflk_pig
+      physical_table: tk_wens_recbrlrflk
+      table_description: 养猪畜禽档案，记录猪群信息
+      table_role: dimension_data
+      business_role: 猪群维度表，提供猪群属性信息
+      application: 养户基础资料
+      databases:
+        - rearer_breeding
+        - next_rearer_fatten
+      key_fields:
+        - field_name: fmasterid
+          field_usage: 主数据内码
+          field_description: 主数据内码
+        - field_name: fnumber
+          field_usage: 猪群编码
+          field_description: 编码
+        - field_name: fname
+          field_usage: 猪群名称
+          field_description: 名称
+        - field_name: fk_wens_recrearer
+          field_usage: 养户档案外键
+          field_description: 养户档案名称
+        - field_name: fk_wens_material
+          field_usage: 饲养品种
+          field_description: 饲养品种
+        - field_name: fk_wens_flkstatus
+          field_usage: 猪群状态（0=申请领苗, 1=在养, 2=已上市, 3=已结算）
+          field_description: 猪群状态
+        - field_name: fk_wens_seedtime
+          field_usage: 首次进苗日期
+          field_description: 首次进苗日期
+        - field_name: fk_wens_avadoptdate
+          field_usage: 加权进苗日期（异常农户清单需求字段）
+          field_description: 加权进苗日期
+        - field_name: fk_wens_chickqty
+          field_usage: 苗总数量（异常农户清单需求字段）
+          field_description: 苗总数量
+        - field_name: fk_wens_stockqty
+          field_usage: 存栏量
+          field_description: 存栏量
+        - field_name: fk_wens_batch
+          field_usage: 饲养批次
+          field_description: 饲养批次
+      related_metrics:
+        - 异常农户清单
 
-  # 生产异常预警
-  - business_object:
-      entity_id: E003
-      entity_name: 生产异常预警
-      description: 系统根据预设规则自动触发的生产异常告警
+    - table_name: wens_handle_strategy
+      physical_table: tk_wens_handle_strategy
+      table_description: 原因分析及应对策略，风险分类与策略映射参考库
+      table_role: auxiliary_data
+      business_role: 策略参考表，用于归因分析中的风险分类
+      application: 育肥作业管理
+      databases:
+        - rearer_breeding
+        - next_rearer_fatten
+      key_fields:
+        - field_name: fmasterid
+          field_usage: 主数据内码
+          field_description: 主数据内码
+        - field_name: fnumber
+          field_usage: 策略编码
+          field_description: 单据编码
+        - field_name: fname
+          field_usage: 策略名称
+          field_description: 名称
+        - field_name: fk_wens_patrol_risk_type
+          field_usage: 风险大类
+          field_description: 风险大类
+        - field_name: fk_wens_risk_project
+          field_usage: 风险项
+          field_description: 风险项
+        - field_name: fk_wens_tactic
+          field_usage: 对应策略
+          field_description: 对应策略
+        - field_name: fk_wens_org
+          field_usage: 组织
+          field_description: 组织
+      related_metrics:
+        - 异常原因分布
 
-    candidate_source_tables:
-      - table_name: wens_production_anomaly
-        physical_table: tk_wens_production_anomal
-        business_role: 业务单据表
-        description: 农户生产异常预警，存储预警记录
-        key_fields:
-          - field_name: fbillno
-            description: 单据编号
-            usage: 预警记录唯一标识
-          - field_name: forgid
-            description: 组织
-            usage: 预警所属组织
-          - field_name: fk_wens_basedatafield
-            description: 养户
-            usage: 预警关联的养户
-          - field_name: fk_wens_recbrlrflk_pig
-            description: 猪群编码
-            usage: 预警关联的猪群
-          - field_name: fk_wens_alert_metric
-            description: 预警指标
-            usage: 触发预警的指标类型（1=两周死淘率, 2=五周死淘率, ...）
-          - field_name: fk_wens_alarm_level
-            description: 预警等级
-            usage: 预警的严重程度（1=一级告警, 2=二级告警, 3=三级告警, 4=四级告警）
-          - field_name: fk_wens_alarm_value
-            description: 触发预警时数值
-            usage: 触发预警的具体数值
-          - field_name: fk_wens_alarm_time
-            description: 预警时间
-            usage: 预警触发的时间
-          - field_name: fk_wens_status
-            description: 预警状态
-            usage: 预警当前状态（1=持续中, 2=已关闭, 3=仅通知）
-          - field_name: fk_wens_closing_time
-            description: 预警关闭时间
-            usage: 预警关闭的时间
-          - field_name: fk_wens_duration
-            description: 持续时长
-            usage: 预警持续的天数
-          - field_name: fk_wens_is_generate_ticke
-            description: 是否巡查
-            usage: 是否需要巡查处理
-          - field_name: fk_wens_patrol_operator
-            description: 巡查处理人
-            usage: 负责巡查的人员
-        missing_fields: []
+  metrics:
+    - metric_id: M01
+      metric_name: 生产异常农户总数
+      required_business_objects:
+        - 预警事件
+        - 养户
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: fk_wens_basedatafield
+              field_usage: 养户标识，用于去重
+              field_description: 养户
+            - field_name: fk_wens_status
+              field_usage: 过滤条件（1=持续中, 3=仅通知）
+              field_description: 预警状态
+          missing_fields: []
+          support_status: supported
 
-  # 巡查工单
-  - business_object:
-      entity_id: E004
-      entity_name: 巡查工单
-      description: 针对生产异常预警创建的处理工单
+    - metric_id: M02
+      metric_name: 持续中预警农户数
+      required_business_objects:
+        - 预警事件
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: fk_wens_basedatafield
+              field_usage: 养户标识，用于去重
+              field_description: 养户
+            - field_name: fk_wens_status
+              field_usage: 过滤条件（1=持续中）
+              field_description: 预警状态
+          missing_fields: []
+          support_status: supported
 
-    candidate_source_tables:
-      - table_name: wens_patrol_ticket
-        physical_table: tk_wens_patrol_ticket
-        business_role: 业务单据表
-        description: 农户生产异常巡查工单，存储巡查记录
-        key_fields:
-          - field_name: fbillno
-            description: 单据编号
-            usage: 巡查工单唯一标识
-          - field_name: forgid
-            description: 组织
-            usage: 巡查工单所属组织
-          - field_name: fk_wens_basedatafield
-            description: 养户
-            usage: 巡查工单关联的养户
-          - field_name: fk_wens_recbrlrflk_pig
-            description: 猪群编码
-            usage: 巡查工单关联的猪群
-          - field_name: fk_wens_atrol_ticket_stat
-            description: 巡查工单状态
-            usage: 工单当前状态（1=未完成, 2=已完成, 3=未完成(过期)）
-          - field_name: fk_wens_warning_billno
-            description: 预警单据编号
-            usage: 关联的预警单据编号
-        entries:
-          - entry_name: tk_wens_risk_item_entry
-            description: 风险项分录
-            key_fields:
-              - field_name: fk_wens_risk_item
-                description: 自定义风险大类
-                usage: 风险分类
-              - field_name: fk_wens_custom_risk_iteme
-                description: 自定义风险项
-                usage: 具体风险项
-              - field_name: fk_wens_custom_policy
-                description: 自定义策略
-                usage: 应对策略
-              - field_name: fk_wens_custom_is_adopt
-                description: 是否采纳
-                usage: 策略采纳状态
-          - entry_name: tk_cause_analysis
-            description: 原因分析分录
-            key_fields:
-              - field_name: fk_wens_handle_strategy
-                description: 应对策略
-                usage: 关联的应对策略
-              - field_name: fk_wens_is_adopt
-                description: 是否采纳
-                usage: 策略采纳状态
-        missing_fields: []
+    - metric_id: M03
+      metric_name: 持续中-需巡查农户数
+      required_business_objects:
+        - 预警事件
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: fk_wens_basedatafield
+              field_usage: 养户标识，用于去重
+              field_description: 养户
+            - field_name: fk_wens_status
+              field_usage: 过滤条件（1=持续中）
+              field_description: 预警状态
+            - field_name: fk_wens_is_generate_ticke
+              field_usage: 过滤条件（是否巡查=是）
+              field_description: 是否巡查
+          missing_fields: []
+          support_status: supported
 
-  # 应对策略
-  - business_object:
-      entity_id: E005
-      entity_name: 应对策略
-      description: 针对异常原因制定的处理措施
+    - metric_id: M06
+      metric_name: 预警关闭占比
+      required_business_objects:
+        - 预警事件
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: fk_wens_status
+              field_usage: 分子=已关闭(2), 分母=全部
+              field_description: 预警状态
+          missing_fields: []
+          support_status: supported
 
-    candidate_source_tables:
-      - table_name: wens_handle_strategy
-        physical_table: tk_wens_handle_strategy
-        business_role: 基础资料表
-        description: 原因分析及应对策略，存储策略配置
-        key_fields:
-          - field_name: fnumber
-            description: 单据编码
-            usage: 策略唯一标识
-          - field_name: fname
-            description: 名称
-            usage: 策略名称
-          - field_name: fk_wens_org
-            description: 组织
-            usage: 策略所属组织
-          - field_name: fk_wens_patrol_risk_type
-            description: 风险大类
-            usage: 策略关联的风险大类
-          - field_name: fk_wens_risk_project
-            description: 风险项
-            usage: 策略关联的风险项
-          - field_name: fk_wens_tactic
-            description: 对应策略
-            usage: 具体的应对策略
-        missing_fields: []
+    - metric_id: M07
+      metric_name: 平均持续时长
+      required_business_objects:
+        - 预警事件
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: fk_wens_duration
+              field_usage: 取平均值
+              field_description: 持续时长
+          missing_fields:
+            - 持续时长单位确认（天/小时）
+          support_status: partial
 
-# 数据资产汇总
-summary:
-  total_tables: 5
-  total_fields: 85
-  business_objects_covered: 5
-  coverage_status: 完全覆盖
+    - metric_id: M08
+      metric_name: 7天复发率
+      required_business_objects:
+        - 预警事件
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 预警事件数据来源
+          support_fields:
+            - field_name: forgid
+              field_usage: 分组条件-组织
+              field_description: 组织
+            - field_name: fk_wens_basedatafield
+              field_usage: 分组条件-养户
+              field_description: 养户
+            - field_name: fk_wens_recbrlrflk_pig
+              field_usage: 分组条件-猪群
+              field_description: 猪群编码
+            - field_name: fk_wens_alert_metric
+              field_usage: 分组条件-预警指标
+              field_description: 预警指标
+            - field_name: fk_wens_alarm_level
+              field_usage: 分组条件-预警等级
+              field_description: 预警等级
+            - field_name: fk_wens_alarm_time
+              field_usage: 时间间隔计算
+              field_description: 预警时间
+          missing_fields: []
+          support_status: supported
+
+    - metric_id: M09
+      metric_name: 有效干涉率
+      required_business_objects:
+        - 巡查工单
+      source_tables:
+        - source_type: candidate
+          table_name: wens_patrol_ticket
+          physical_table: tk_wens_patrol_ticket
+          table_role: transaction_data
+          business_role: 巡查工单数据来源
+          support_fields:
+            - field_name: fk_wens_atrol_ticket_stat
+              field_usage: 分子=已完成(2), 分母=全部
+              field_description: 巡查工单状态
+          missing_fields: []
+          support_status: supported
+
+    - metric_id: C01
+      metric_name: 异常农户占比
+      required_business_objects:
+        - 预警事件
+        - 养户
+      source_tables:
+        - source_type: candidate
+          table_name: wens_production_anomaly
+          physical_table: tk_wens_production_anomal
+          table_role: transaction_data
+          business_role: 异常农户数来源
+          support_fields:
+            - field_name: fk_wens_basedatafield
+              field_usage: 养户标识
+              field_description: 养户
+            - field_name: fk_wens_status
+              field_usage: 过滤条件
+              field_description: 预警状态
+          missing_fields: []
+          support_status: supported
+        - source_type: candidate
+          table_name: wens_rearer_farm_pig
+          physical_table: tk_wens_rea_farm_info
+          table_role: dimension_data
+          business_role: 总养户数来源
+          support_fields:
+            - field_name: fmasterid
+              field_usage: 养户唯一标识，用于计数
+              field_description: 主数据内码
+            - field_name: fstatus
+              field_usage: 过滤条件（C=已审核）
+              field_description: 数据状态
+            - field_name: fenable
+              field_usage: 过滤条件（1=可用）
+              field_description: 使用状态
+          missing_fields: []
+          support_status: supported

@@ -1,0 +1,761 @@
+# Mapping Configuration
+# Version: 1.2
+# Generated: 2026-09-11
+# Schema: mapping_design_schema v1.0
+
+# 项目信息
+project:
+  project_id: wens_dw_project
+  project_name: 农户生产异常预警分析看板
+  model_version: v1.6
+
+# Mapping文档
+mapping_document:
+
+  model_layers:
+    # ============================================
+    # FACT层
+    # ============================================
+    - layer_name: FACT
+      models:
+        # ----------------------------------------
+        # fact_production_anomaly
+        # ----------------------------------------
+        - model_name: fact_production_anomaly
+          business_process: 生产异常预警事件
+          grain: 一条记录 = 一个养户 + 一个养户种群 + 一个异常预警事件
+
+          source_mapping:
+            sources:
+              - source_type: event_source
+                table_name: tk_wens_production_anomal
+                alias: anomaly
+                join_condition: null
+
+          field_mapping:
+            # 主键
+            - target_field: alert_id
+              target_comment: 预警记录唯一标识
+              source_type: direct
+              source_table: anomaly
+              source_field: fbillno
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            # 业务关联字段
+            - target_field: rearer_id
+              target_comment: 养户来源系统ID
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_basedatafield
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: rearer_pop_id
+              target_comment: 养户种群来源系统ID
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_recbrlrflk_pig
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: org_id
+              target_comment: 组织来源系统ID
+              source_type: direct
+              source_table: anomaly
+              source_field: forgid
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 事实字段
+            - target_field: alert_metric_cd
+              target_comment: 预警指标代码
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_alert_metric
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: alert_level_cd
+              target_comment: 预警等级代码
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_alarm_level
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: alert_status_cd
+              target_comment: 预警状态代码
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_status
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: alert_status_name
+              target_comment: 预警状态名称
+              source_type: transform
+              source_table: anomaly
+              source_field: fk_wens_status
+              transform_logic: |
+                CASE fk_wens_status
+                  WHEN '1' THEN '持续中'
+                  WHEN '2' THEN '已关闭'
+                  WHEN '3' THEN '仅通知'
+                END
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: alert_time
+              target_comment: 预警时间
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_alarm_time
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: duration_days
+              target_comment: 持续时长（天）
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_duration
+              transform_logic: 直接映射（单位待确认）
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: alarm_value
+              target_comment: 触发预警时数值
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_alarm_value
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: is_patrol_flag
+              target_comment: 是否巡查标志
+              source_type: direct
+              source_table: anomaly
+              source_field: fk_wens_is_generate_ticke
+              transform_logic: 直接映射（存储值待确认）
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: bill_status_cd
+              target_comment: 单据状态代码
+              source_type: direct
+              source_table: anomaly
+              source_field: fbillstatus
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 系统字段
+            - target_field: etl_biz_dt
+              target_comment: ETL业务日期
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前日期
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: etl_proc_tm
+              target_comment: ETL处理时间
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前时间戳
+              nullable: false
+              mapping_confidence: high
+
+          filter_condition:
+            - condition: anomaly.fbillstatus = 'C'（已审核，待确认）
+
+          data_quality_check:
+            - check: alert_id 唯一性校验
+            - check: rearer_id 不能为空
+            - check: rearer_pop_id 不能为空（待确认）
+
+        # ----------------------------------------
+        # fact_patrol_ticket
+        # ----------------------------------------
+        - model_name: fact_patrol_ticket
+          business_process: 巡查工单处理事件
+          grain: 一条记录 = 一个巡查工单
+
+          source_mapping:
+            sources:
+              - source_type: event_source
+                table_name: tk_wens_patrol_ticket
+                alias: ticket
+                join_condition: null
+
+          field_mapping:
+            # 主键
+            - target_field: ticket_id
+              target_comment: 巡查工单唯一标识
+              source_type: direct
+              source_table: ticket
+              source_field: fbillno
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            # 关联键
+            - target_field: alert_id
+              target_comment: 关联预警记录标识
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_warning_billno
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_id
+              target_comment: 养户来源系统ID
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_basedatafield
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_pop_id
+              target_comment: 养户种群来源系统ID
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_recbrlrflk_pig
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: org_id
+              target_comment: 组织来源系统ID
+              source_type: direct
+              source_table: ticket
+              source_field: forgid
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 事实字段
+            - target_field: ticket_status_cd
+              target_comment: 巡查工单状态代码
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_atrol_ticket_stat
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: ticket_status_name
+              target_comment: 巡查工单状态名称
+              source_type: transform
+              source_table: ticket
+              source_field: fk_wens_atrol_ticket_stat
+              transform_logic: |
+                CASE fk_wens_atrol_ticket_stat
+                  WHEN '1' THEN '未完成'
+                  WHEN '2' THEN '已完成'
+                  WHEN '3' THEN '未完成(过期)'
+                END
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: executor_id
+              target_comment: 执行人ID
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_executor
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: bill_status_cd
+              target_comment: 单据状态代码
+              source_type: direct
+              source_table: ticket
+              source_field: fbillstatus
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 系统字段
+            - target_field: etl_biz_dt
+              target_comment: ETL业务日期
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前日期
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: etl_proc_tm
+              target_comment: ETL处理时间
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前时间戳
+              nullable: false
+              mapping_confidence: high
+
+          filter_condition:
+            - condition: ticket.fbillstatus = 'C'（已审核，待确认）
+
+          data_quality_check:
+            - check: ticket_id 唯一性校验
+            - check: alert_id 关联完整性校验
+
+        # ----------------------------------------
+        # fact_risk_analysis
+        # ----------------------------------------
+        - model_name: fact_risk_analysis
+          business_process: 风险分析事件
+          grain: 一条记录 = 一个风险分析分录
+
+          source_mapping:
+            sources:
+              - source_type: event_source
+                table_name: tk_wens_risk_item_entry
+                alias: risk_entry
+                join_condition: null
+
+              - source_type: parent_reference
+                table_name: tk_wens_patrol_ticket
+                alias: ticket
+                join_condition: risk_entry.fbillno = ticket.fbillno
+
+          field_mapping:
+            # 主键
+            - target_field: risk_id
+              target_comment: 风险分析记录唯一标识
+              source_type: derived
+              source_table: risk_entry
+              source_field: fbillno + fentry_id
+              transform_logic: 拼接工单编号和分录ID
+              nullable: false
+              mapping_confidence: medium
+
+            # 关联键
+            - target_field: ticket_id
+              target_comment: 关联巡查工单标识
+              source_type: direct
+              source_table: risk_entry
+              source_field: fbillno
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: alert_id
+              target_comment: 关联预警记录标识
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_warning_billno
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_id
+              target_comment: 养户来源系统ID
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_basedatafield
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_pop_id
+              target_comment: 养户种群来源系统ID
+              source_type: direct
+              source_table: ticket
+              source_field: fk_wens_recbrlrflk_pig
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 风险维度字段
+            - target_field: risk_category_cd
+              target_comment: 风险大类代码
+              source_type: direct
+              source_table: risk_entry
+              source_field: fk_wens_risk_item
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: risk_item_cd
+              target_comment: 风险项代码
+              source_type: direct
+              source_table: risk_entry
+              source_field: fk_wens_custom_risk_iteme
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: strategy_cd
+              target_comment: 应对策略代码
+              source_type: direct
+              source_table: risk_entry
+              source_field: fk_wens_custom_policy
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: adopt_flag
+              target_comment: 策略采纳标志
+              source_type: direct
+              source_table: risk_entry
+              source_field: fk_wens_custom_is_adopt
+              transform_logic: 直接映射（存储值待确认）
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: execute_flag
+              target_comment: 策略执行标志
+              source_type: direct
+              source_table: risk_entry
+              source_field: fk_wens_custom_is_execute
+              transform_logic: 直接映射（存储值待确认）
+              nullable: true
+              mapping_confidence: medium
+
+            # 系统字段
+            - target_field: etl_biz_dt
+              target_comment: ETL业务日期
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前日期
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: etl_proc_tm
+              target_comment: ETL处理时间
+              source_type: constant
+              source_table: null
+              source_field: null
+              transform_logic: 当前时间戳
+              nullable: false
+              mapping_confidence: high
+
+          filter_condition:
+            - condition: ticket.fbillstatus = 'C'（已审核，待确认）
+
+          data_quality_check:
+            - check: risk_id 唯一性校验
+            - check: ticket_id 关联完整性校验
+            - check: risk_category_cd 不能为空
+
+    # ============================================
+    # ADS层
+    # ============================================
+    - layer_name: ADS
+      models:
+        # ----------------------------------------
+        # ads_anomaly_status
+        # ----------------------------------------
+        - model_name: ads_anomaly_status
+          business_process: 异常状态分析
+          grain: 日期 + 组织 + 养户 + 养户种群 + 预警指标 + 预警等级
+
+          source_mapping:
+            sources:
+              - source_type: event_source
+                table_name: fact_production_anomaly
+                alias: anomaly
+                join_condition: null
+
+              - source_type: event_source
+                table_name: fact_patrol_ticket
+                alias: ticket
+                join_condition: anomaly.alert_id = ticket.alert_id
+
+          field_mapping:
+            # 维度字段
+            - target_field: dt
+              target_comment: 日期
+              source_type: derived
+              source_table: anomaly
+              source_field: alert_time
+              transform_logic: DATE(alert_time)
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: month_id
+              target_comment: 月份
+              source_type: derived
+              source_table: anomaly
+              source_field: alert_time
+              transform_logic: DATE_FORMAT(alert_time, 'YYYY-MM')
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: org_id
+              target_comment: 组织ID
+              source_type: direct
+              source_table: anomaly
+              source_field: org_id
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_id
+              target_comment: 养户ID
+              source_type: direct
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: rearer_pop_id
+              target_comment: 养户种群ID
+              source_type: direct
+              source_table: anomaly
+              source_field: rearer_pop_id
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: alert_metric_cd
+              target_comment: 预警指标代码
+              source_type: direct
+              source_table: anomaly
+              source_field: alert_metric_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: alert_level_cd
+              target_comment: 预警等级代码
+              source_type: direct
+              source_table: anomaly
+              source_field: alert_level_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: alert_status_cd
+              target_comment: 预警状态代码
+              source_type: direct
+              source_table: anomaly
+              source_field: alert_status_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 指标字段
+            - target_field: anomaly_farmer_cnt
+              target_comment: 生产异常农户数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: COUNT(DISTINCT rearer_id) WHERE alert_status_cd IN ('1', '3')
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: ongoing_alert_farmer_cnt
+              target_comment: 持续中预警农户数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: COUNT(DISTINCT rearer_id) WHERE alert_status_cd = '1'
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: patrol_required_farmer_cnt
+              target_comment: 需巡查农户数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: COUNT(DISTINCT rearer_id) WHERE alert_status_cd = '1' AND is_patrol_flag = '是'
+              nullable: false
+              mapping_confidence: medium
+
+            - target_field: notify_only_farmer_cnt
+              target_comment: 今日仅通知农户数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: COUNT(DISTINCT rearer_id) WHERE alert_status_cd = '3'
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: closed_alert_cnt
+              target_comment: 预警关闭数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: alert_id
+              transform_logic: COUNT(alert_id) WHERE alert_status_cd = '2'
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: total_alert_cnt
+              target_comment: 预警总数
+              source_type: aggregate
+              source_table: anomaly
+              source_field: alert_id
+              transform_logic: COUNT(alert_id)
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: avg_duration_days
+              target_comment: 平均持续时长
+              source_type: aggregate
+              source_table: anomaly
+              source_field: duration_days
+              transform_logic: AVG(duration_days) WHERE duration_days IS NOT NULL AND duration_days > 0
+              nullable: true
+              mapping_confidence: medium
+
+            - target_field: completed_ticket_cnt
+              target_comment: 巡查工单已完成数
+              source_type: aggregate
+              source_table: ticket
+              source_field: ticket_id
+              transform_logic: COUNT(ticket_id) WHERE ticket_status_cd = '2'
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: total_ticket_cnt
+              target_comment: 巡查工单总数
+              source_type: aggregate
+              source_table: ticket
+              source_field: ticket_id
+              transform_logic: COUNT(ticket_id)
+              nullable: false
+              mapping_confidence: high
+
+          filter_condition:
+            - condition: anomaly.bill_status_cd = 'C'（已审核，待确认）
+
+          data_quality_check:
+            - check: dt + org_id + rearer_id + rearer_pop_id + alert_metric_cd + alert_level_cd 粒度校验
+            - check: rearer_id 不能为空
+            - check: anomaly_farmer_cnt >= 0
+            - check: total_alert_cnt >= 0
+
+        # ----------------------------------------
+        # ads_cause_analysis
+        # ----------------------------------------
+        - model_name: ads_cause_analysis
+          business_process: 归因措施分析
+          grain: 日期 + 组织 + 养户 + 风险大类 + 风险项 + 策略
+
+          source_mapping:
+            sources:
+              - source_type: event_source
+                table_name: fact_risk_analysis
+                alias: risk
+                join_condition: null
+
+              - source_type: parent_reference
+                table_name: fact_patrol_ticket
+                alias: ticket
+                join_condition: risk.ticket_id = ticket.ticket_id
+
+              - source_type: parent_reference
+                table_name: fact_production_anomaly
+                alias: anomaly
+                join_condition: risk.alert_id = anomaly.alert_id
+
+          field_mapping:
+            # 维度字段
+            - target_field: dt
+              target_comment: 日期
+              source_type: derived
+              source_table: risk
+              source_field: etl_biz_dt
+              transform_logic: DATE(etl_biz_dt)
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: month_id
+              target_comment: 月份
+              source_type: derived
+              source_table: risk
+              source_field: etl_biz_dt
+              transform_logic: DATE_FORMAT(etl_biz_dt, 'YYYY-MM')
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: org_id
+              target_comment: 组织ID
+              source_type: direct
+              source_table: anomaly
+              source_field: org_id
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: rearer_id
+              target_comment: 养户ID
+              source_type: direct
+              source_table: anomaly
+              source_field: rearer_id
+              transform_logic: 直接映射
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: risk_category_cd
+              target_comment: 风险大类代码
+              source_type: direct
+              source_table: risk
+              source_field: risk_category_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: risk_item_cd
+              target_comment: 风险项代码
+              source_type: direct
+              source_table: risk
+              source_field: risk_item_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            - target_field: strategy_cd
+              target_comment: 应对策略代码
+              source_type: direct
+              source_table: risk
+              source_field: strategy_cd
+              transform_logic: 直接映射
+              nullable: true
+              mapping_confidence: high
+
+            # 指标字段
+            - target_field: risk_record_cnt
+              target_comment: 风险大类记录数
+              source_type: aggregate
+              source_table: risk
+              source_field: risk_id
+              transform_logic: COUNT(risk_id) GROUP BY risk_category_cd
+              nullable: false
+              mapping_confidence: high
+
+            - target_field: adopted_cnt
+              target_comment: 策略采纳记录数
+              source_type: aggregate
+              source_table: risk
+              source_field: risk_id
+              transform_logic: COUNT(risk_id) WHERE adopt_flag = '1'
+              nullable: false
+              mapping_confidence: medium
+
+          filter_condition:
+            - condition: ticket.bill_status_cd = 'C'（已审核，待确认）
+
+          data_quality_check:
+            - check: dt + org_id + rearer_id + risk_category_cd + risk_item_cd + strategy_cd 粒度校验
+            - check: risk_category_cd 不能为空
+            - check: risk_record_cnt >= 0

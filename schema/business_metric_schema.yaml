@@ -1,358 +1,221 @@
-# =====================================
+# ==========================================
 # Business Metric Analysis Schema
 # Version: 1.1
+#
 # Purpose:
 # Requirement Analysis Agent Output Contract
 #
 # Scope:
-# 需求理解
-# 指标拆解
-# 数据可实现性初判
+# 业务理解
+# 页面分析
+# 业务对象识别
+# 指标定义
+# 指标粒度分析
+# 业务过程分析
+# 业务规则沉淀
 #
 # NOT INCLUDE:
-# SQL
-# Mapping
-# FACT/DWS/ADS设计
-# =====================================
+# 数据源分析
+# 数仓模型设计
+# SQL开发
+# ==========================================
 
 
-# 项目信息
 project:
 
-
   project_id:
-
     type: string
-
     required: true
-
-    description:
-      项目唯一标识
-
-
 
   project_name:
-
     type: string
-
     required: true
-
-    description:
-      项目名称
-
-
 
   business_domain:
-
     type: string
-
-    required: true
-
-    description:
-      所属业务领域
+    required: false
 
 
+# ==========================================
+# 1. 项目业务理解
+# ==========================================
 
-  requirement_type:
+business_context:
 
-
-    type: array
-
-
-    required: true
-
-
-    description:
-      需求类型
-
-
-    enum:
-
-      - dashboard
-      - metric_analysis
-      - fact_creation
-      - data_extract
-      - other
-
-
-
-  description:
-
+  background:
     type: string
-
-    required: false
-
-
-
-
-
-# 输入资料信息
-source_context:
-
-
-  requirement_documents:
-
-    type: array
-
-    required: true
-
-
-  prototype_files:
-
-    type: array
-
-    required: false
-
-
-  metadata_files:
-
-    type: array
-
-    required: false
-
-
-  business_rule_files:
-
-    type: array
-
-    required: false
-
-    description:
-      业务规则补充文件
-
-
-
-
-
-# 业务理解
-business_overview:
-
 
   business_goal:
 
+    type: array
 
-    type: string
+    items:
 
+      type: string
 
-    required: true
-
-
-
-  business_process:
-
+  service_users:
 
     type: array
 
+    items:
 
-    item:
-
-
-      step_no:
-
-        type: integer
+      type: string
 
 
-      step_name:
+# ==========================================
+# 2. 页面分析
+# 页面仅作为业务需求输入
+# 不作为ADS拆分依据
+# ==========================================
 
-        type: string
-
-
-      description:
-
-        type: string
-
-
-
-
-
-# 原型分析
-dashboard_analysis:
-
+page_analysis:
 
   pages:
 
-
     type: array
 
-
-    item:
-
+    items:
 
       page_id:
 
         type: string
 
-
       page_name:
 
         type: string
 
-
-      purpose:
+      business_purpose:
 
         type: string
-
 
       components:
 
-
         type: array
 
+        items:
 
-        item:
+          component_name:
 
+            type: string
 
-          component_type:
-
-
-            enum:
-
-              - metric_card
-              - line_chart
-              - bar_chart
-              - pie_chart
-              - table
-              - other
-
-
-
-          related_metrics:
-
+          display_metrics:
 
             type: array
 
-            item:
+            items:
 
               type: string
 
+          display_grain:
+
+            type: string
 
 
+# ==========================================
+# 3. 业务对象识别
+# ==========================================
+
+business_objects:
+
+  objects:
+
+    type: array
+
+    items:
+
+      object_name:
+
+        type: string
+
+      business_definition:
+
+        type: string
+
+      business_grain:
+
+        type: string
+
+      core_attributes:
+
+        type: array
+
+        items:
+
+          type: string
 
 
-# 业务实体
-business_entities:
+# ==========================================
+# 4. 业务过程分析
+# ==========================================
+
+business_process_analysis:
+
+  processes:
+
+    type: array
+
+    items:
+
+      process_name:
+
+        type: string
+
+      process_type:
+
+        enum:
+
+          - event
+          - transaction
+          - snapshot
 
 
-  type: array
-
-
-  item:
-
-
-    entity_id:
-
-      type: string
-
-
-
-    entity_name:
-
-      type: string
-
-
-
-    description:
-
-      type: string
-
-
-
-    business_grain:
-
-      type: string
-
-
-
-    key_attributes:
-
-
-      type: array
-
-      item:
+      business_object:
 
         type: string
 
 
+      process_grain:
+
+        type: string
 
 
+      process_description:
 
-# 指标体系
+        type: string
+
+
+# ==========================================
+# 5. 指标分析
+# ==========================================
+
 metrics:
-
 
   atomic_metrics:
 
-
     type: array
 
-
-    item:
-
+    items:
 
       metric_id:
 
         type: string
 
-
-
-      metric_status:
-
-
-        enum:
-
-          - draft
-          - pending_confirmation
-          - confirmed
-
-
-
       metric_name:
 
         type: string
 
-
-
-      metric_type:
-
-
-        constant:
-
-          atomic
-
-
-
-      definition:
+      business_definition:
 
         type: string
-
-
 
       statistic_object:
 
         type: string
 
 
-
       statistic_grain:
 
         type: string
-
-
-        description:
-          最细统计对象粒度
-
-
-
-      analysis_dimensions:
-
-
-        type: array
-
-
-        item:
-
-          type: string
-
 
 
       calculation_logic:
@@ -360,112 +223,66 @@ metrics:
         type: string
 
 
-
-      business_rule:
-
+      business_rules:
 
         type: array
 
-
-        item:
+        items:
 
           type: string
 
 
 
-      development_hint:
-
-
-        type: array
-
-
-        item:
-
-          type: string
-
-
-
-
-
-  derived_metrics:
-
+  composite_metrics:
 
     type: array
 
-
-    item:
-
+    items:
 
       metric_id:
 
         type: string
 
+      metric_name:
+
+        type: string
+
+      business_definition:
+
+        type: string
+
+      formula:
+
+        type: string
+
+      component_metrics:
+
+        type: array
+
+        items:
+
+          type: string
 
 
-      metric_status:
 
+  trend_metrics:
 
-        enum:
+    type: array
 
-          - draft
-          - pending_confirmation
-          - confirmed
+    items:
 
+      metric_id:
 
+        type: string
 
       metric_name:
 
         type: string
 
 
-
-      definition:
-
-        type: string
-
-
-
-      formula:
+      statistic_object:
 
         type: string
-
-
-
-      metric_dependencies:
-
-
-        type: array
-
-
-        item:
-
-          type: string
-
-
-
-      components:
-
-
-        type: array
-
-
-        item:
-
-
-          metric_id:
-
-            type: string
-
-
-          role:
-
-
-            enum:
-
-              - numerator
-              - denominator
-              - component
-
 
 
       statistic_grain:
@@ -473,295 +290,201 @@ metrics:
         type: string
 
 
-
-      analysis_dimensions:
-
-
-        type: array
-
-
-        item:
-
-          type: string
-
-
-
-
-
-  trend_metrics:
-
-
-    type: array
-
-
-    item:
-
-
-      metric_id:
+      display_time_grain:
 
         type: string
 
 
+      analysis_dimensions:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+# ==========================================
+# 6. 指标业务粒度分析
+# 核心：区分业务粒度和展示粒度
+# ==========================================
+
+metric_grain_analysis:
+
+  metrics:
+
+    type: array
+
+    items:
+
+      metric_id:
+
+        type: string
 
       metric_name:
 
         type: string
 
 
-
-      time_dimension:
+      analysis_object:
 
         type: string
 
 
+      business_statistic_grain:
 
-      analysis_dimension:
+        type: string
 
+
+      source_grain:
+
+        type: string
+
+
+      display_grain:
+
+        type: string
+
+      calculation_basis:
+
+        type: string
+
+      drill_down_dimensions:
 
         type: array
 
-
-        item:
+        items:
 
           type: string
 
 
+      aggregation_path:
 
-      measure_metric:
+        type: string
+
+      calculation_logic_summary:
+      
+        type: string
+
+# ==========================================
+# 7. 业务规则
+# ==========================================
+
+business_rules:
+
+  rules:
+
+    type: array
+
+    items:
+
+      rule_id:
 
         type: string
 
 
-
-
-
-# 数据可实现性初判
-data_feasibility_check:
-
-
-  type: array
-
-
-  item:
-
-
-    metric_id:
-
-      type: string
-
-
-
-    feasibility_status:
-
-
-      enum:
-
-
-        - possible
-        - partial
-        - impossible
-        - unknown
-
-
-
-    evidence:
-
-
-      type: array
-
-
-      item:
+      rule_description:
 
         type: string
 
 
-
-    candidate_sources:
-
-
-      tables:
-
+      related_metrics:
 
         type: array
 
-
-        item:
+        items:
 
           type: string
 
 
+      priority:
 
-      candidate_fields:
+        enum:
 
+          - confirmed
+          - inferred
+
+
+# ==========================================
+# 8. 数据支撑初判
+# 仅需求阶段初步判断
+# Data Analysis阶段重新确认
+# ==========================================
+
+data_support_initial:
+
+  metrics:
+
+    type: array
+
+    items:
+
+      metric_id:
+
+        type: string
+
+      support_status:
+
+        enum:
+
+          - supported
+          - partial
+          - unknown
+
+
+      possible_source_objects:
 
         type: array
 
-
-        item:
+        items:
 
           type: string
 
 
+      missing_information:
 
-    risk:
+        type: array
 
+        items:
 
-      type: array
-
-
-      item:
-
-        type: string
+          type: string
 
 
+# ==========================================
+# 9. 待确认问题
+# ==========================================
 
-    missing_information:
+confirmation_questions:
 
+  questions:
 
-      type: array
+    type: array
 
+    items:
 
-      item:
-
-        type: string
-
-
-
-
-
-# 待确认问题
-business_questions:
-
-
-  type: array
-
-
-  item:
-
-
-    question_id:
-
-      type: string
-
-
-
-    question_type:
-
-
-      enum:
-
-
-        - business
-        - technical
-
-
-
-    related_metric:
-
-
-      type: array
-
-
-      item:
+      question_id:
 
         type: string
 
 
+      question:
 
-    question:
-
-      type: string
-
+        type: string
 
 
-    impact:
+      impact:
 
-      type: string
-
-
-
-    priority:
+        type: string
 
 
-      enum:
+      status:
+
+        enum:
+
+          - confirmed
+          - pending
 
 
-        - high
-        - medium
-        - low
+      answer:
 
-
-
-    blocking:
-
-
-      type: boolean
-
-
-
-    status:
-
-
-      enum:
-
-
-        - pending
-        - confirmed
-
-
-
-    answer:
-
-      type: string
-
-
-
-
-
-# 确认状态
-confirmation:
-
-
-  business_status:
-
-
-    enum:
-
-
-      - draft
-      - waiting_confirmation
-      - confirmed
-
-
-
-  data_status:
-
-
-    enum:
-
-
-      - pending
-      - confirmed
-
-
-
-  model_status:
-
-
-    enum:
-
-
-      - pending
-      - confirmed
-
-
-
-  confirmed_by:
-
-    type: string
-
-
-
-  confirmed_time:
-
-    type: string
+        type: string

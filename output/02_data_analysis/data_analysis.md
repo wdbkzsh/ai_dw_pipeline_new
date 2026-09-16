@@ -1,283 +1,286 @@
-# 数据分析文档
-
-## 项目信息
-- **项目名称：** 农户生产异常预警分析看板
-- **项目ID：** wens_dw_project
-- **生成日期：** 2026-09-10
-- **文档版本：** 1.0
-
----
+# 农户生产异常预警分析 - 数据分析报告
 
 ## 1. 数据资产分析
 
 ### 1.1 源数据表概览
 
-| 表名 | 物理表名 | 业务角色 | 主要用途 |
-|------|----------|----------|----------|
-| wens_rearer_farm_pig | tk_wens_rea_farm_info | 主数据表 | 存储养户基本信息 |
-| wens_recbrlrflk_pig | tk_wens_recbrlrflk | 主数据表 | 存储猪群基本信息 |
-| wens_production_anomaly | tk_wens_production_anomal | 业务单据表 | 存储预警记录 |
-| wens_patrol_ticket | tk_wens_patrol_ticket | 业务单据表 | 存储巡查记录 |
-| wens_handle_strategy | tk_wens_handle_strategy | 基础资料表 | 存储策略配置 |
+| 逻辑表名 | 物理表名 | 业务角色 | 表类型 | 说明 |
+|---------|---------|---------|--------|------|
+| wens_production_anomaly | tk_wens_production_anomal | 预警事件主表 | transaction_data | 核心事实数据，支撑大部分指标 |
+| wens_patrol_ticket | tk_wens_patrol_ticket | 巡查工单主表 | transaction_data | 支撑有效干涉率和归因分析 |
+| wens_rearer_farm_pig | tk_wens_rea_farm_info | 养户维度表 | dimension_data | 支撑总养户数和养户属性 |
+| wens_recbrlrflk_pig | tk_wens_recbrlrflk | 猪群维度表 | dimension_data | 支撑猪群属性和异常农户清单 |
+| wens_handle_strategy | tk_wens_handle_strategy | 策略参考表 | auxiliary_data | 支撑归因分析中的风险分类 |
 
-### 1.2 业务对象与源表映射
+### 1.2 指标-数据表映射
 
-#### 养户（E001）
-- **主表：** wens_rearer_farm_pig
-- **主键：** fmasterid
-- **关键字段：**
-  - fnumber：养户编码
-  - fname：养户名称
-  - fenable：使用状态（0=禁用, 1=可用）
-  - fk_wens_status：饲养状态（1=在养, 2=空栏中, 3=已停养, 4=销户）
-  - fstatus：数据状态（A=暂存, B=已提交, C=已审核）
-
-#### 猪群（E002）
-- **主表：** wens_recbrlrflk_pig
-- **主键：** fmasterid
-- **关键字段：**
-  - fnumber：猪群编码
-  - fk_wens_recrearer：关联养户
-  - fk_wens_flkstatus：猪群状态（0=申请领苗, 1=在养, 2=已上市, 3=已结算）
-  - fk_wens_stockqty：存栏量
-  - fk_wens_deadqty：总死淘数
-
-#### 生产异常预警（E003）
-- **主表：** wens_production_anomaly
-- **主键：** fbillno
-- **关键字段：**
-  - fk_wens_basedatafield：关联养户
-  - fk_wens_recbrlrflk_pig：关联猪群
-  - fk_wens_alert_metric：预警指标（1=两周死淘率, 2=五周死淘率, ...）
-  - fk_wens_alarm_level：预警等级（1=一级告警, 2=二级告警, 3=三级告警, 4=四级告警）
-  - fk_wens_status：预警状态（1=持续中, 2=已关闭, 3=仅通知）
-  - fk_wens_alarm_time：预警时间
-  - fk_wens_duration：持续时长
-
-#### 巡查工单（E004）
-- **主表：** wens_patrol_ticket
-- **主键：** fbillno
-- **关键字段：**
-  - fk_wens_atrol_ticket_stat：工单状态（1=未完成, 2=已完成, 3=未完成(过期)）
-  - fk_wens_warning_billno：关联预警单据编号
-- **分录：**
-  - tk_wens_risk_item_entry：风险项分录
-  - tk_cause_analysis：原因分析分录
-
-#### 应对策略（E005）
-- **主表：** wens_handle_strategy
-- **主键：** fnumber
-- **关键字段：**
-  - fname：策略名称
-  - fk_wens_patrol_risk_type：风险大类
-  - fk_wens_risk_project：风险项
+| 指标ID | 指标名称 | 主要来源表 | 辅助来源表 |
+|--------|---------|-----------|-----------|
+| M01 | 生产异常农户总数 | wens_production_anomaly | — |
+| M02 | 持续中预警农户数 | wens_production_anomaly | — |
+| M03 | 持续中-需巡查农户数 | wens_production_anomaly | — |
+| M04 | 持续中-无需巡查农户数 | wens_production_anomaly | — |
+| M05 | 今日仅通知农户数 | wens_production_anomaly | — |
+| M06 | 预警关闭占比 | wens_production_anomaly | — |
+| M07 | 平均持续时长 | wens_production_anomaly | — |
+| M08 | 7天复发率 | wens_production_anomaly | — |
+| M09 | 有效干涉率 | wens_patrol_ticket | — |
+| C01 | 异常农户占比 | wens_production_anomaly | wens_rearer_farm_pig |
+| T01 | 按预警指标趋势 | wens_production_anomaly | — |
+| T02 | 按预警等级趋势 | wens_production_anomaly | — |
+| T03 | 有效干涉率趋势 | wens_patrol_ticket | — |
+| T04 | 平均持续时长趋势 | wens_production_anomaly | — |
+| T05 | 7天复发率趋势 | wens_production_anomaly | — |
 
 ---
 
 ## 2. 表粒度分析
 
-### 2.1 粒度定义
+### 2.1 wens_production_anomaly（预警事件表）
 
-| 表名 | 业务粒度 | 技术粒度 | 主键 | 置信度 |
-|------|----------|----------|------|--------|
-| wens_rearer_farm_pig | 一个养户一条记录 | 单一实体 | fmasterid | 高 |
-| wens_recbrlrflk_pig | 一个猪群一条记录 | 单一实体 | fmasterid | 高 |
-| wens_production_anomaly | 一条预警记录对应一个预警事件 | 单一实体 | fbillno | 高 |
-| wens_patrol_ticket | 一条巡查工单对应一条预警记录 | 单一实体（含分录） | fbillno | 高 |
-| wens_handle_strategy | 一条策略配置对应一个风险类型 | 单一实体 | fnumber | 高 |
+| 维度 | 说明 |
+|------|------|
+| **业务粒度** | 一条记录 = 一次生产异常预警事件 |
+| **技术粒度** | 单据级（每行一条预警单据，含主表和分录） |
+| **候选主键** | fbillno（单据编号） |
+| **近似唯一键** | forgid + fk_wens_basedatafield + fk_wens_recbrlrflk_pig + fk_wens_alert_metric + fk_wens_alarm_level + fk_wens_alarm_time |
+| **粒度依据** | fbillno为唯一标识；每条记录关联一个养户+一个猪群；一个养户可有多条不同预警 |
+| **置信度** | high |
 
-### 2.2 粒度关系
+**验证项：**
+- fbillno 是否唯一
+- 同一养户+猪群+指标+等级是否存在多条记录
+- fk_wens_status 枚举值是否只有 1/2/3
+- fk_wens_duration 单位确认
 
-| 源表 | 目标表 | 关系类型 | 关联字段 | 业务含义 |
-|------|--------|----------|----------|----------|
-| wens_production_anomaly | wens_rearer_farm_pig | 多对一 | fk_wens_basedatafield -> fmasterid | 一条预警记录属于一个养户 |
-| wens_production_anomaly | wens_recbrlrflk_pig | 多对一 | fk_wens_recbrlrflk_pig -> fmasterid | 一条预警记录属于一个猪群 |
-| wens_patrol_ticket | wens_production_anomaly | 多对一 | fk_wens_warning_billno -> fbillno | 一条巡查工单对应一条预警记录 |
-| wens_patrol_ticket | wens_handle_strategy | 多对多 | tk_cause_analysis.fk_wens_handle_strategy -> fmasterid | 一条巡查工单可以关联多个应对策略 |
+### 2.2 wens_patrol_ticket（巡查工单表）
+
+| 维度 | 说明 |
+|------|------|
+| **业务粒度** | 一条记录 = 一次巡查工单 |
+| **技术粒度** | 单据级（每行一条工单，含两个分录表） |
+| **候选主键** | fbillno（单据编号） |
+| **粒度依据** | fbillno为唯一标识；通过fk_wens_warning_billno关联预警；含两个分录 |
+| **置信度** | high |
+
+**验证项：**
+- fbillno 是否唯一
+- 一条预警是否对应多条工单
+- fk_wens_atrol_ticket_stat 枚举值是否只有 1/2/3
+
+### 2.3 wens_rearer_farm_pig（养户档案表）
+
+| 维度 | 说明 |
+|------|------|
+| **业务粒度** | 一条记录 = 一个养户档案 |
+| **技术粒度** | 基础资料级（每行一个养户主数据） |
+| **候选主键** | fmasterid（主数据内码） |
+| **粒度依据** | fmasterid为唯一标识；fnumber为业务编码 |
+| **置信度** | high |
+
+**验证项：**
+- fmasterid/fnumber 是否唯一
+- fk_wens_status 枚举值分布
+
+### 2.4 wens_recbrlrflk_pig（畜禽档案表）
+
+| 维度 | 说明 |
+|------|------|
+| **业务粒度** | 一条记录 = 一个猪群 |
+| **技术粒度** | 基础资料级（每行一个猪群主数据） |
+| **候选主键** | fmasterid（主数据内码） |
+| **粒度依据** | fmasterid为唯一标识；每个猪群关联一个养户 |
+| **置信度** | high |
+
+**验证项：**
+- 一个养户下是否有多个猪群
+- fk_wens_flkstatus 枚举值分布
+
+### 2.5 wens_handle_strategy（应对策略表）
+
+| 维度 | 说明 |
+|------|------|
+| **业务粒度** | 一条记录 = 一条风险-策略映射关系 |
+| **技术粒度** | 基础资料级 |
+| **候选主键** | fmasterid（主数据内码） |
+| **置信度** | medium |
 
 ---
 
-## 3. 实体关系
+## 3. 实体关系分析
 
-### 3.1 ER 图描述
+### 3.1 ER 关系图
 
 ```
-[养户] --1:N-- [猪群]
-    |               |
-    1:N             1:N
-    |               |
-    v               v
-[生产异常预警] --1:N-- [巡查工单] --N:M-- [应对策略]
+┌──────────────┐     fk_wens_basedatafield      ┌──────────────────┐
+│              │ ──────────────────────────────→ │                  │
+│   预警事件    │                                 │     养户档案      │
+│              │     fk_wens_recbrlrflk_pig      │                  │
+│  wens_       │ ──────────────────────────────→ ├──────────────────┤
+│  production_ │                                 │                  │
+│  anomaly     │     fbillno                     │     猪群档案      │
+│              │ ←────────────────────────────── │                  │
+└──────┬───────┘     fk_wens_warning_billno      │  wens_recbrlrflk │
+       │           ┌─────────────────────────────│     _pig         │
+       │           │                             └──────────────────┘
+       │           │
+       │    ┌──────┴───────┐    tk_cause_analysis     ┌──────────────┐
+       └──→ │              │ ───────────────────────→ │              │
+            │   巡查工单    │    fk_wens_handle_       │   应对策略    │
+            │              │    strategy               │              │
+            │  wens_       │                           │  wens_       │
+            │  patrol_     │                           │  handle_     │
+            │  ticket      │                           │  strategy    │
+            └──────────────┘                           └──────────────┘
 ```
 
-### 3.2 关系说明
+### 3.2 关系明细
 
-1. **养户 -> 猪群（1:N）**
-   - 一个养户可以拥有多个猪群
-   - 通过 wens_recbrlrflk_pig.fk_wens_recrearer 关联
-
-2. **养户 -> 生产异常预警（1:N）**
-   - 一个养户可以有多条预警记录
-   - 通过 wens_production_anomaly.fk_wens_basedatafield 关联
-
-3. **猪群 -> 生产异常预警（1:N）**
-   - 一个猪群可以有多条预警记录
-   - 通过 wens_production_anomaly.fk_wens_recbrlrflk_pig 关联
-
-4. **生产异常预警 -> 巡查工单（1:N）**
-   - 一条预警记录可以生成多条巡查工单
-   - 通过 wens_patrol_ticket.fk_wens_warning_billno 关联
-
-5. **巡查工单 -> 应对策略（N:M）**
-   - 一条巡查工单可以关联多个应对策略
-   - 通过 tk_cause_analysis.fk_wens_handle_strategy 关联
+| 源表 | 目标表 | 关系类型 | 关联字段 | 置信度 |
+|------|--------|---------|---------|--------|
+| wens_production_anomaly | wens_rearer_farm_pig | many_to_one | fk_wens_basedatafield = fmasterid | high |
+| wens_production_anomaly | wens_recbrlrflk_pig | many_to_one | fk_wens_recbrlrflk_pig = fmasterid | high |
+| wens_patrol_ticket | wens_production_anomaly | many_to_one | fk_wens_warning_billno = fbillno | high |
+| wens_patrol_ticket | wens_rearer_farm_pig | many_to_one | fk_wens_basedatafield = fmasterid | high |
+| wens_patrol_ticket | wens_recbrlrflk_pig | many_to_one | fk_wens_recbrlrflk_pig = fmasterid | high |
+| wens_patrol_ticket.tk_cause_analysis | wens_handle_strategy | many_to_many | fk_wens_handle_strategy = fmasterid | high |
+| wens_rearer_farm_pig | wens_recbrlrflk_pig | one_to_many | fmasterid = fk_wens_recrearer | high |
 
 ---
 
 ## 4. 指标实现分析
 
-### 4.1 原子指标
+### 4.1 M01 生产异常农户总数
 
-| 指标ID | 指标名称 | 数据来源 | 技术逻辑 | 伪代码 |
-|--------|----------|----------|----------|--------|
-| M001 | 生产异常农户数 | wens_production_anomaly | 统计预警状态为"持续中"或"仅通知"的养户数量，按养户去重 | COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status IN ('1', '3') |
-| M002 | 持续中预警农户数 | wens_production_anomaly | 统计预警状态为"持续中"的养户数量，按养户去重 | COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status = '1' |
-| M003 | 需巡查农户数 | wens_production_anomaly | 统计预警状态为"持续中"且需要巡查的养户数量，按养户去重 | COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status = '1' AND fk_wens_is_generate_ticke = '是' |
-| M005 | 今日仅通知农户数 | wens_production_anomaly | 统计当前预警状态为"仅通知"的养户数量，按养户去重 | COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status = '3' |
-| M006 | 总养户数 | wens_rearer_farm_pig | 统计使用状态为"可用"、饲养状态为"在养"、数据状态为"已审核"的养户数量 | COUNT(DISTINCT fmasterid) WHERE fenable = '1' AND fk_wens_status = '1' AND fstatus = 'C' |
-| M007 | 预警关闭数 | wens_production_anomaly | 统计预警状态为"已关闭"的记录数 | COUNT(*) WHERE fk_wens_status = '2' |
-| M008 | 预警总数 | wens_production_anomaly | 统计所有预警记录数 | COUNT(*) |
-| M009 | 平均持续时长 | wens_production_anomaly | 计算预警持续时长的平均值 | AVG(fk_wens_duration) |
-| M010 | 巡查工单已完成数 | wens_patrol_ticket | 统计巡查工单状态为"已完成"的记录数 | COUNT(*) WHERE fk_wens_atrol_ticket_stat = '2' |
-| M011 | 巡查工单总数 | wens_patrol_ticket | 统计所有巡查工单数 | COUNT(*) |
-| M012 | 复发记录数 | wens_production_anomaly | 7天内同一组织、养户、猪群、预警指标、预警等级的预警记录视为复发 | 自关联查询，ABS(DATEDIFF(day, a.fk_wens_alarm_time, b.fk_wens_alarm_time)) <= 7 |
-| M013 | 风险大类记录数 | wens_patrol_ticket | 按风险大类分组统计巡查工单分录数 | COUNT(*) GROUP BY fk_wens_risk_item |
-| M014 | 策略采纳记录数 | wens_patrol_ticket | 统计策略采纳状态为"是"的巡查工单分录数 | COUNT(*) WHERE fk_wens_custom_is_adopt = '1' |
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_basedatafield（养户）, fk_wens_status（预警状态）
+- **技术逻辑**：筛选 fk_wens_status IN ('1','3')，按 fk_wens_basedatafield 去重计数
+- **伪代码**：`COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status IN ('1','3')`
+- **风险**：需确认是否过滤单据状态
 
-### 4.2 复合指标
+### 4.2 M02 持续中预警农户数
 
-| 指标ID | 指标名称 | 公式 | 伪代码 |
-|--------|----------|------|--------|
-| C001 | 生产异常农户占比 | M001 / M006 | (生产异常农户数) / (总养户数) |
-| C002 | 预警关闭占比 | M007 / M008 | (预警关闭数) / (预警总数) |
-| C003 | 有效干涉率 | 有已完成工单的预警数 / 预警总数 | (COUNT(DISTINCT fk_wens_warning_billno) WHERE fk_wens_atrol_ticket_stat = '2') / COUNT(*) |
-| C004 | 7天复发率 | M012 / M008 | (复发记录数) / (预警总数) |
-| C005 | 风险大类占比 | M013 / 预警总数 | (风险大类记录数) / (预警总数) |
-| C006 | 策略采纳率 | M014 / 预警总数 | (策略采纳记录数) / (预警总数) |
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_basedatafield, fk_wens_status
+- **技术逻辑**：筛选 fk_wens_status = '1'，按养户去重计数
+- **伪代码**：`COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status = '1'`
 
-### 4.3 趋势指标
+### 4.3 M03 持续中-需巡查农户数
 
-| 指标ID | 指标名称 | 时间维度 | 分析维度 | 度量指标 |
-|--------|----------|----------|----------|----------|
-| T001 | 预警类型趋势 | 月份 | 预警指标 | 异常养户数 |
-| T002 | 预警等级趋势 | 月份 | 预警等级 | 异常养户数 |
-| T003 | 平均持续时长趋势 | 月份 | - | 平均持续时长 |
-| T004 | 7天复发率趋势 | 月份 | - | 7天复发率 |
-| T005 | 有效干涉率趋势 | 月份 | - | 有效干涉率 |
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_basedatafield, fk_wens_status, fk_wens_is_generate_ticke
+- **技术逻辑**：筛选持续中且是否巡查为是，按养户去重计数
+- **伪代码**：`COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status='1' AND fk_wens_is_generate_ticke='是'`
+- **风险**：fk_wens_is_generate_ticke 枚举值待确认
+
+### 4.4 M04 持续中-无需巡查农户数
+
+- **数据来源**：wens_production_anomaly
+- **技术逻辑**：筛选持续中且是否巡查为否，按养户去重计数
+- **风险**：同M03
+
+### 4.5 M05 今日仅通知农户数
+
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_basedatafield, fk_wens_status, fk_wens_alarm_time
+- **技术逻辑**：筛选仅通知状态且预警时间为当日，按养户去重计数
+- **伪代码**：`COUNT(DISTINCT fk_wens_basedatafield) WHERE fk_wens_status='3' AND DATE(fk_wens_alarm_time)=CURRENT_DATE`
+
+### 4.6 M06 预警关闭占比
+
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_status
+- **技术逻辑**：已关闭记录数 / 全部记录数
+- **伪代码**：`SUM(CASE WHEN fk_wens_status='2' THEN 1 ELSE 0 END) / COUNT(*)`
+- **风险**：按月还是全量统计待确认
+
+### 4.7 M07 平均持续时长
+
+- **数据来源**：wens_production_anomaly
+- **关键字段**：fk_wens_duration
+- **技术逻辑**：对持续时长字段取平均值
+- **伪代码**：`AVG(fk_wens_duration)`
+- **结论**：单位虽不明确但全局统一，不影响趋势分析和对比
+
+### 4.8 M08 7天复发率
+
+- **数据来源**：wens_production_anomaly
+- **关键字段**：forgid, fk_wens_basedatafield, fk_wens_recbrlrflk_pig, fk_wens_alert_metric, fk_wens_alarm_level, fk_wens_alarm_time
+- **技术逻辑**：按分组条件分组，组内按时间排序，判断相邻预警间隔≤7天，计算有复发的组数/总组数
+- **伪代码**：
+  ```sql
+  WITH grouped AS (
+    SELECT ..., LAG(fk_wens_alarm_time) OVER (PARTITION BY ... ORDER BY fk_wens_alarm_time) AS prev_time
+    FROM tk_wens_production_anomal
+  ),
+  recurrence AS (
+    SELECT ..., MAX(CASE WHEN DATEDIFF(fk_wens_alarm_time, prev_time) <= 7 THEN 1 ELSE 0 END) AS has_recurrence
+    FROM grouped GROUP BY 分组条件
+  )
+  SELECT SUM(has_recurrence) / COUNT(*) FROM recurrence
+  ```
+- **风险**：计算复杂，需窗口函数；需确认是否过滤预警状态
+
+### 4.9 M09 有效干涉率
+
+- **数据来源**：wens_patrol_ticket
+- **关键字段**：fk_wens_atrol_ticket_stat
+- **技术逻辑**：已完成工单数 / 总工单数
+- **伪代码**：`SUM(CASE WHEN fk_wens_atrol_ticket_stat='2' THEN 1 ELSE 0 END) / COUNT(*)`
+
+### 4.10 C01 异常农户占比
+
+- **数据来源**：wens_production_anomaly + wens_rearer_farm_pig
+- **技术逻辑**：分子=异常农户数（M01），分母=总养户数
+- **伪代码**：`M01 / COUNT(*) FROM wens_rearer_farm_pig WHERE fstatus='C' AND fenable='1'`
+- **结论**：总养户数 = 已审核(fstatus='C') 且 可用(fenable='1') 的养户档案数
+
+### 4.11 T01-T05 趋势指标
+
+- **通用逻辑**：在原子指标基础上增加 DATE_FORMAT(fk_wens_alarm_time, '%Y-%m') 作为分组维度
+- **特殊处理**：T05（7天复发率趋势）需按月切片计算
 
 ---
 
 ## 5. 数据风险
 
-### 5.1 粒度问题
+### 5.1 高风险项
 
-| 风险ID | 风险描述 | 影响 | 缓解措施 |
-|--------|----------|------|----------|
-| GR001 | 预警记录粒度不明确 | 可能导致指标统计重复或遗漏 | 需要确认预警记录的业务粒度 |
+| 风险ID | 影响指标 | 问题描述 | 状态 | 结论 |
+|--------|---------|---------|------|------|
+| RISK03 | M07, T04 | 持续时长字段单位不明确（天/小时） | ✅ 已解决 | 单位全局统一，不影响趋势分析 |
+| RISK05 | C01 | 总养户数统计口径待确认 | ✅ 已解决 | 取 fbillstatus='C' AND fenable='1' 的养户 |
+| RISK07 | 异常原因分布, 策略有效性 | 巡查工单两个分录的取数逻辑不明确 | ⚠️ 暂定 | 按需求分析关联逻辑实现，后续变更再调整 |
+| RISK11 | 全部指标 | 预警表和巡查工单表的预警指标枚举值有差异 | ✅ 已解决 | 已确认无差异，数据字典解析差异 |
 
-### 5.2 状态问题
+### 5.2 中风险项
 
-| 风险ID | 风险描述 | 影响 | 缓解措施 |
-|--------|----------|------|----------|
-| SR001 | 预警状态枚举值不一致 | 过滤条件可能失效 | 需要验证实际数据中的枚举值 |
-| SR002 | 巡查工单状态枚举值不一致 | 过滤条件可能失效 | 需要验证实际数据中的枚举值 |
-| SR003 | 复选框字段存储值不一致 | 过滤条件可能失效 | 需要验证实际数据中的存储值 |
+| 风险ID | 影响指标 | 问题描述 | 状态 | 结论 |
+|--------|---------|---------|------|------|
+| RISK01 | M01-M05 | 单据状态过滤条件未明确 | ✅ 已解决 | 需过滤 fbillstatus='C'（已审核） |
+| RISK04 | M08, T05 | 7天复发率计算复杂，性能风险 | ⚠️ 已知 | 暂不过滤预警状态，关注性能 |
+| RISK08 | M03, M04 | 是否巡查字段枚举值不明确 | ✅ 已解决 | 0=否，1=是 |
+| RISK09 | M06 | 预警关闭占比时间范围不明确 | ✅ 已解决 | BI端计算，模型提供明细数据 |
+| RISK10 | 异常农户清单 | 猪群编码关联可能失败 | 中 | 待确认 |
 
-### 5.3 时间问题
+### 5.3 低风险项
 
-| 风险ID | 风险描述 | 影响 | 缓解措施 |
-|--------|----------|------|----------|
-| TR001 | 时间字段格式不一致 | 时间计算可能出错 | 需要统一时间格式 |
-| TR002 | 持续时长字段单位不明确 | 平均持续时长计算可能不准确 | 需要确认字段的单位 |
-
-### 5.4 关系问题
-
-| 风险ID | 风险描述 | 影响 | 缓解措施 |
-|--------|----------|------|----------|
-| RR001 | 预警记录与养户的关联可能不完整 | 指标统计可能遗漏 | 需要验证关联完整性 |
-
----
-
-## 6. 建议的验证步骤
-
-### 6.1 验证枚举值
-
-```sql
--- 验证预警状态枚举值
-SELECT DISTINCT fk_wens_status, COUNT(*)
-FROM tk_wens_production_anomal
-GROUP BY fk_wens_status
-
--- 验证巡查工单状态枚举值
-SELECT DISTINCT fk_wens_atrol_ticket_stat, COUNT(*)
-FROM tk_wens_patrol_ticket
-GROUP BY fk_wens_atrol_ticket_stat
-```
-
-### 6.2 验证复选框字段
-
-```sql
--- 验证是否巡查字段
-SELECT DISTINCT fk_wens_is_generate_ticke, COUNT(*)
-FROM tk_wens_production_anomal
-GROUP BY fk_wens_is_generate_ticke
-```
-
-### 6.3 验证时间字段
-
-```sql
--- 验证预警时间字段
-SELECT
-  MIN(fk_wens_alarm_time) as min_time,
-  MAX(fk_wens_alarm_time) as max_time,
-  COUNT(*) as total_count,
-  COUNT(fk_wens_alarm_time) as non_null_count
-FROM tk_wens_production_anomal
-
--- 验证持续时长字段
-SELECT
-  MIN(fk_wens_duration) as min_duration,
-  MAX(fk_wens_duration) as max_duration,
-  AVG(fk_wens_duration) as avg_duration
-FROM tk_wens_production_anomal
-WHERE fk_wens_duration IS NOT NULL
-```
-
-### 6.4 验证关联完整性
-
-```sql
--- 验证预警记录与养户的关联完整性
-SELECT
-  COUNT(*) as total_alerts,
-  COUNT(fk_wens_basedatafield) as has_farmer,
-  COUNT(*) - COUNT(fk_wens_basedatafield) as missing_farmer
-FROM tk_wens_production_anomal
-WHERE fbillstatus = 'C'
-```
+| 风险ID | 影响指标 | 问题描述 | 影响 |
+|--------|---------|---------|------|
+| RISK02 | M01-M05 | 养户在不同指标间可能重复计算 | 指标间关系异常 |
+| RISK06 | M09, T03 | 巡查工单状态枚举值完整性 | 分母不完整 |
 
 ---
 
-## 7. 输出文件清单
+## 6. 待确认问题汇总
 
-1. **data_analysis.md** - 本文档，面向开发人员的数据分析说明
-2. **data_asset_analysis.yaml** - 业务对象对应源数据资产
-3. **grain_analysis.yaml** - 源表粒度分析
-4. **entity_relation.yaml** - 业务 ER 关系
-5. **metric_implementation.yaml** - 指标技术实现分析
-6. **data_quality_risk.yaml** - 数据风险
-
----
-
-**文档版本：** 1.0
-**生成日期：** 2026-09-10
-**分析状态：** 已完成
+| 编号 | 问题 | 影响范围 | 状态 | 结论 |
+|------|------|---------|------|------|
+| 1 | 持续时长字段(fk_wens_duration)的单位是天还是小时？ | M07, T04 | ✅ 已解决 | 单位全局统一，不影响分析 |
+| 2 | 总养户数是否过滤饲养状态？ | C01 | ✅ 已解决 | 取 fbillstatus='C' AND fenable='1' |
+| 3 | 巡查工单两个分录的取数逻辑？ | 异常原因分布, 策略有效性 | ⚠️ 暂定 | 按需求分析逻辑实现，后续再调整 |
+| 4 | 预警表和巡查工单表的预警指标枚举值是否一致？ | 全部关联指标 | ✅ 已解决 | 已确认无差异 |
+| 5 | 是否需要过滤单据状态(fbillstatus)？ | M01-M05 | ✅ 已解决 | 需过滤 fbillstatus='C' |
+| 6 | 是否巡查字段(fk_wens_is_generate_ticke)的枚举值？ | M03, M04 | ✅ 已解决 | 0=否，1=是 |
+| 7 | 预警关闭占比是按月统计还是全量？ | M06 | ✅ 已解决 | BI端计算，模型提供明细 |
+| 8 | 7天复发率是否需要额外过滤预警状态？ | M08, T05 | ✅ 已解决 | 暂不过滤 |

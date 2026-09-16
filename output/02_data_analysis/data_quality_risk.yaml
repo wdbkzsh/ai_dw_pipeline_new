@@ -1,190 +1,105 @@
-# Data Quality Risk Analysis
-# Version: 1.0
-# Generated: 2026-09-10
+# ==========================================
+# 数据质量风险分析
+# 农户生产异常预警分析
+# ==========================================
 
-# 项目信息
 project:
   project_id: wens_dw_project
-  project_name: 农户生产异常预警分析看板
+  project_name: 农户生产异常预警分析
 
-# 数据质量风险
-data_quality_risks:
+data_quality_risk:
+  risks:
+    - risk_id: RISK01
+      related_metric: M01, M02, M03, M04, M05
+      related_table: wens_production_anomaly
+      issue_description: 预警表的单据状态(fbillstatus)过滤条件未明确。需求中仅提及预警状态(fk_wens_status)过滤，但未说明是否需要额外过滤单据状态（暂存/已提交/已审核）。
+      impact: 如果不过滤单据状态，可能将暂存或未提交的预警纳入统计，导致指标偏高。
+      suggested_solution: 确认是否需要过滤 fbillstatus = 'C'（已审核），在指标实现中增加过滤条件。
+      severity: medium
+      resolution: 已确认 - 需要过滤 fbillstatus = 'C'（已审核）。
 
-  # 粒度问题
-  grain_risks:
-    - risk_id: GR001
-      risk_name: 预警记录粒度不明确
-      description: 一条预警记录是对应一个养户的一个猪群的一个预警事件，还是一个养户的所有预警事件？
-      affected_tables:
-        - wens_production_anomaly
-      affected_metrics:
-        - M001
-        - M002
-        - M003
-        - M004
-        - M005
-      impact: 可能导致指标统计重复或遗漏
-      likelihood: medium
-      mitigation: 需要确认预警记录的业务粒度
-      status: 待确认
+    - risk_id: RISK02
+      related_metric: M01, M02, M03, M04, M05, T01, T02
+      related_table: wens_production_anomaly
+      issue_description: 一个养户可能同时有多条不同状态的预警记录（如既有持续中又有仅通知），去重后同一养户可能被多个指标重复计算。
+      impact: M01（持续中+仅通知）和M02（持续中）的去重逻辑可能导致M02 > M01的异常情况（如果仅通知的养户与持续中的养户不重叠）。
+      suggested_solution: 明确各指标的去重逻辑，确保指标间的包含关系正确。
+      severity: low
 
-  # 字段缺失
-  field_missing_risks:
-    - risk_id: FM001
-      risk_name: 预警内容字段缺失
-      description: wens_production_anomaly 表的 fk_wens_alert_content_t 字段可能存储预警的具体内容，但数据字典中未明确其格式和取值范围
-      affected_tables:
-        - wens_production_anomaly
-      affected_metrics: []
-      impact: 无法进行预警内容分析
-      likelihood: low
-      mitigation: 需要确认字段的实际存储内容
-      status: 待确认
+    - risk_id: RISK03
+      related_metric: M07, T04
+      related_table: wens_production_anomaly
+      issue_description: 持续时长字段(fk_wens_duration)的数据类型为整数，但单位不明确（天/小时/分钟）。需求文档趋势图标题为"平均持续时长（天）"，但字段定义中未标注单位。
+      impact: 如果单位不是天，直接展示会导致指标含义错误。
+      suggested_solution: 查询实际数据分布，确认字段单位。如果为小时需除以24转换为天。
+      severity: high
+      resolution: 已确认 - 单位虽不明确但全局统一，不影响趋势分析和对比，暂不处理。
 
-  # 状态问题
-  status_risks:
-    - risk_id: SR001
-      risk_name: 预警状态枚举值不一致
-      description: 预警状态的枚举值定义为 '1'=持续中, '2'=已关闭, '3'=仅通知，但实际存储值可能不同
-      affected_tables:
-        - wens_production_anomaly
-      affected_metrics:
-        - M001
-        - M002
-        - M003
-        - M004
-        - M005
-        - M007
-      impact: 过滤条件可能失效
-      likelihood: low
-      mitigation: 需要验证实际数据中的枚举值
-      status: 待确认
+    - risk_id: RISK04
+      related_metric: M08, T05
+      related_table: wens_production_anomaly
+      issue_description: 7天复发率的计算逻辑较复杂，需要窗口函数。分组条件（组织+养户+猪群+预警指标+预警等级）的组合可能导致分组过多，影响计算性能。
+      impact: 计算复杂度高，大数据量下可能有性能问题。
+      suggested_solution: 考虑预计算或分步实现。同时确认是否需要额外过滤预警状态。
+      severity: medium
 
-    - risk_id: SR002
-      risk_name: 巡查工单状态枚举值不一致
-      description: 巡查工单状态的枚举值定义为 '1'=未完成, '2'=已完成, '3'=未完成(过期)，但实际存储值可能不同
-      affected_tables:
-        - wens_patrol_ticket
-      affected_metrics:
-        - M010
-      impact: 过滤条件可能失效
-      likelihood: low
-      mitigation: 需要验证实际数据中的枚举值
-      status: 待确认
+    - risk_id: RISK05
+      related_metric: C01
+      related_table: wens_rearer_farm_pig
+      issue_description: 总养户数的统计口径待确认。养户档案有饲养状态字段（1=在养, 2=空栏中, 3=已停养, 4=销户），需求未明确是否需要过滤。
+      impact: 如果不过滤，空栏中、已停养、销户的养户也会被计入分母，导致占比偏低。
+      suggested_solution: 确认总养户数是否仅统计"在养"状态的养户，或统计全量。
+      severity: high
+      resolution: 已确认 - 总养户数 = fbillstatus='C'（已审核） AND fenable='1'（可用）的养户档案数。
 
-    - risk_id: SR003
-      risk_name: 复选框字段存储值不一致
-      description: fk_wens_is_generate_ticke 和 fk_wens_custom_is_adopt 是复选框字段，存储值可能是 '是'/'否' 或 '1'/'0'
-      affected_tables:
-        - wens_production_anomaly
-        - wens_patrol_ticket
-      affected_metrics:
-        - M003
-        - M004
-        - M014
-      impact: 过滤条件可能失效
-      likelihood: medium
-      mitigation: 需要验证实际数据中的存储值
-      status: 待确认
+    - risk_id: RISK06
+      related_metric: M09, T03
+      related_table: wens_patrol_ticket
+      issue_description: 巡查工单状态枚举值在需求文档和数据字典中一致（1=未完成, 2=已完成, 3=未完成(过期)），但需确认是否有其他状态值。
+      impact: 如果存在其他状态值，已完成占比的分母可能不完整。
+      suggested_solution: 查询实际数据中的状态分布。
+      severity: low
 
-  # 时间问题
-  time_risks:
-    - risk_id: TR001
-      risk_name: 时间字段格式不一致
-      description: 不同表的时间字段可能使用不同的格式（如 datetime、timestamp、date）
-      affected_tables:
-        - wens_production_anomaly
-        - wens_patrol_ticket
-      affected_metrics:
-        - M012
-        - T001
-        - T002
-        - T003
-      impact: 时间计算可能出错
-      likelihood: medium
-      mitigation: 需要统一时间格式
-      status: 待确认
+    - risk_id: RISK07
+      related_metric: 异常原因分布, 策略有效性
+      related_table: wens_patrol_ticket
+      issue_description: 巡查工单有两个分录（原因分析分录和自定义风险分录），需求文档中未明确异常原因分布和策略有效性分别取哪个分录的数据，以及两个分录是否需要合并。
+      impact: 取不同分录的数据会导致结果差异较大。
+      suggested_solution: 确认异常原因分布取哪个分录，策略有效性是否需要合并两个分录。
+      severity: high
+      resolution: 暂按需求分析中的关联逻辑实现，后续变更时再调整。
 
-    - risk_id: TR002
-      risk_name: 持续时长字段单位不明确
-      description: fk_wens_duration 字段的单位是天、小时还是分钟？
-      affected_tables:
-        - wens_production_anomaly
-      affected_metrics:
-        - M009
-        - T003
-      impact: 平均持续时长计算可能不准确
-      likelihood: medium
-      mitigation: 需要确认字段的单位
-      status: 待确认
+    - risk_id: RISK08
+      related_metric: M03, M04
+      related_table: wens_production_anomaly
+      issue_description: 是否巡查字段(fk_wens_is_generate_ticke)为复选框类型，枚举值不明确。可能是Y/N、1/0、true/false等。
+      impact: 过滤条件写错会导致指标计算错误。
+      suggested_solution: 查询实际数据中的枚举值分布。
+      severity: medium
+      resolution: 已确认 - 0=否，1=是。
 
-  # 关系问题
-  relationship_risks:
-    - risk_id: RR001
-      risk_name: 预警记录与养户的关联可能不完整
-      description: 部分预警记录可能没有关联到养户
-      affected_tables:
-        - wens_production_anomaly
-        - wens_rearer_farm_pig
-      affected_metrics:
-        - M001
-        - M002
-        - M003
-        - M004
-        - M005
-      impact: 指标统计可能遗漏
-      likelihood: low
-      mitigation: 需要验证关联完整性
-      status: 待确认
+    - risk_id: RISK09
+      related_metric: M06
+      related_table: wens_production_anomaly
+      issue_description: 预警关闭占比的时间范围不明确。需求中"本月预警效果评估"暗示按月统计，但指标定义中未明确。
+      impact: 按月统计和全量统计的结果差异较大。
+      suggested_solution: 确认预警关闭占比是按月统计还是全量统计。
+      severity: medium
+      resolution: 已确认 - 计算指标暂定放在前端BI做计算，模型只提供可用于前端计算的明细数据。
 
-# 风险汇总
-summary:
-  total_risks: 8
-  high_risk: 0
-  medium_risk: 4
-  low_risk: 4
-  key_risks:
-    - SR003: 复选框字段存储值不一致
-    - TR001: 时间字段格式不一致
-    - TR002: 持续时长字段单位不明确
+    - risk_id: RISK10
+      related_metric: 异常农户清单
+      related_table: wens_production_anomaly, wens_recbrlrflk_pig
+      issue_description: 异常农户清单中的"管理员"字段需求描述为"农户服务员取养户表的管理员字段"，即取wens_rearer_farm_pig的fk_wens_userfield。但"加权进苗日期"和"苗总数量"取自畜禽档案(wens_recbrlrflk_pig)，需要通过猪群编码关联。
+      impact: 如果关联失败（如猪群编码为空或无效），清单中这些字段会为空。
+      suggested_solution: 确认预警表中的猪群编码是否都能有效关联到畜禽档案。
+      severity: medium
 
-# 建议的验证步骤
-recommended_validation_steps:
-
-  - step_no: 1
-    step_name: 验证枚举值
-    description: 查询实际数据中的枚举值，确认与数据字典一致
-    validation_sql: |
-      SELECT DISTINCT fk_wens_status, COUNT(*)
-      FROM tk_wens_production_anomal
-      GROUP BY fk_wens_status
-
-  - step_no: 2
-    step_name: 验证复选框字段
-    description: 查询复选框字段的实际存储值
-    validation_sql: |
-      SELECT DISTINCT fk_wens_is_generate_ticke, COUNT(*)
-      FROM tk_wens_production_anomal
-      GROUP BY fk_wens_is_generate_ticke
-
-  - step_no: 3
-    step_name: 验证时间字段
-    description: 查询时间字段的格式和取值范围
-    validation_sql: |
-      SELECT
-        MIN(fk_wens_alarm_time) as min_time,
-        MAX(fk_wens_alarm_time) as max_time,
-        COUNT(*) as total_count,
-        COUNT(fk_wens_alarm_time) as non_null_count
-      FROM tk_wens_production_anomal
-
-  - step_no: 4
-    step_name: 验证关联完整性
-    description: 查询表之间的关联完整性
-    validation_sql: |
-      SELECT
-        COUNT(*) as total_alerts,
-        COUNT(fk_wens_basedatafield) as has_farmer,
-        COUNT(*) - COUNT(fk_wens_basedatafield) as missing_farmer
-      FROM tk_wens_production_anomal
-      WHERE fbillstatus = 'C'
+    - risk_id: RISK11
+      related_metric: 全部指标
+      related_table: wens_production_anomaly
+      issue_description: 预警表和巡查工单表中的预警指标枚举值略有差异。预警表中5=连续3天死淘率，而巡查工单表中5=连续3天采食量。
+      impact: 如果两个表的枚举值含义不同，关联分析时会产生歧义。
+      suggested_solution: 确认两个表的预警指标枚举值定义是否一致，以哪个为准。
+      severity: high
+      resolution: 已确认 - 两个表的枚举值无差异，数据字典解析差异导致的显示问题。

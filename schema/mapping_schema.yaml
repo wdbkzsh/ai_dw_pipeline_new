@@ -1,0 +1,197 @@
+schema:
+
+  name: mapping_design_schema
+
+  version: v1.0
+
+
+  description:
+
+    purpose:
+      - 描述目标模型字段与来源数据字段的映射关系
+      - 支撑ETL开发
+
+    scope:
+      - FACT mapping
+      - ADS mapping
+      - Dimension dependency mapping
+
+
+  project:
+
+    required:
+      - project_id
+      - project_name
+      - model_version
+
+
+
+  mapping_document:
+
+
+    model_layers:
+
+      type: array
+
+      items:
+
+        layer_name:
+          type: enum
+          values:
+
+            - FACT
+            - ADS
+            - DIM_REFERENCE
+
+
+        models:
+
+          type: array
+
+
+          model:
+
+
+            model_name:
+
+              type: string
+
+
+            business_process:
+
+              type: string
+
+
+            grain:
+
+              type: string
+
+
+            source_mapping:
+
+
+              sources:
+
+                type: array
+
+
+                source:
+
+
+                  source_type:
+
+                    type: enum
+
+                    values:
+
+                      - event_source
+                      - dimension_reference
+                      - parent_reference
+                      - lookup_reference
+
+
+
+                  table_name:
+
+                    type: string
+
+
+                  alias:
+
+                    type: string
+
+
+
+                  join_condition:
+
+                    type: string
+
+
+
+            field_mapping:
+
+
+              type: array
+
+
+              field:
+
+
+                target_field:
+
+                  type: string
+
+
+                target_comment:
+
+                  type: string
+
+
+                source_type:
+
+                  type: enum
+
+                  values:
+
+                    - direct
+                    - derived
+                    - constant
+                    - lookup
+
+
+                source_table:
+
+                  type: string
+
+
+                source_field:
+
+                  type: string
+
+
+
+                transform_logic:
+
+                  type: string
+
+
+
+                nullable:
+
+                  type: boolean
+
+
+
+                mapping_confidence:
+
+                  type: enum
+
+                  values:
+
+                    - high
+                    - medium
+                    - low
+
+
+
+            filter_condition:
+
+
+              type: array
+
+
+              condition:
+
+                type: string
+
+
+
+            data_quality_check:
+
+
+              type: array
+
+
+              check:
+
+                type: string

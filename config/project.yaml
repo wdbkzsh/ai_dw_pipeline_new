@@ -206,6 +206,27 @@ schema:
 
       ./schema/business_metric_schema.yaml
 
+  data-analysis:
+
+
+    data-analysis:
+
+      ./schema/data-analysis_schema.yaml
+
+  model-design:
+
+
+    model-design:
+
+      ./schema/model-design_schema.yaml
+
+  sql-generate:
+
+
+    sql-generate:
+
+      ./schema/sql-generate_schema.yaml
+
 
 
 # Agent配置

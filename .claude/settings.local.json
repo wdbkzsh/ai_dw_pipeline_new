@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(python -c \"import pandas as pd; df = pd.read_excel\\('input/requirement/农户生产异常预警分析报告口径.xlsx'\\); print\\(df.to_string\\(\\)\\)\")",
-      "Bash(powershell -Command \"Import-Excel -Path 'input/requirement/农户生产异常预警分析报告口径.xlsx' | Format-Table -AutoSize\")"
+      "Bash(powershell -Command \"Import-Excel -Path 'input/requirement/农户生产异常预警分析报告口径.xlsx' | Format-Table -AutoSize\")",
+      "Bash(mkdir -p \"c:/Users/1/Desktop/wens/project/ai_dw_pipeline_new/output/01_business_analysis\")",
+      "Bash(mv fact/fact_wens_alert_event.sql fact/fact_alert_event.sql)",
+      "Bash(mv fact/fact_wens_patrol_ticket.sql fact/fact_patrol_ticket.sql)",
+      "Bash(mv fact/fact_wens_risk_analysis.sql fact/fact_risk_analysis.sql)",
+      "Bash(mv ads/ads_wens_alert_analysis.sql ads/ads_alert_analysis.sql)",
+      "Bash(mv ads/ads_wens_patrol_analysis.sql ads/ads_patrol_analysis.sql)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\1\\Desktop\\wens\\project\\ai_dw_pipeline_new\\output\\01_business_analysis"
     ]
   }
 }

@@ -1,0 +1,522 @@
+# ==========================================
+# 农户生产异常预警分析 - 模型设计
+# Version: 1.0
+# ==========================================
+
+project:
+  project_id: wens_dw_project
+  project_name: 农户生产异常预警分析
+  business_domain: 育肥作业管理
+
+input_reference:
+  business_analysis: output/01_business_analysis/business_metric_analysis.yaml
+  data_analysis: output/02_data_analysis/
+
+# ==========================================
+# 模型建设策略
+# ==========================================
+
+model_strategy:
+  modeling_method: 维度建模（Kimball）
+  target_layers:
+    - FACT
+    - ADS
+  design_summary: >
+    采用维度建模方法，建设两个业务过程FACT表（预警事件、巡查工单），
+    配合养户、猪群、组织等维度表，直接支撑ADS层应用。
+    当前指标数量较少且无公共汇总复用需求，暂不建设DWS层。
+    计算类指标（占比、比率）由前端BI计算，模型提供明细数据。
+  design_principles:
+    - FACT沉淀业务事件，明确粒度为一条事件记录
+    - 维度表独立建设，支持多FACT复用
+    - ADS按维度体系拆分，非按页面数量拆分
+    - 计算类指标由BI端完成，模型提供可计算明细
+
+# ==========================================
+# 业务过程设计
+# ==========================================
+
+business_process:
+  processes:
+    - process_name: 预警事件产生
+      process_type: event
+      modeling_pattern: fact_event
+      business_grain: 一条记录 = 一次生产异常预警事件
+      source_business_objects:
+        - 预警事件
+        - 养户
+        - 猪群
+    - process_name: 巡查处理
+      process_type: event
+      modeling_pattern: fact_event
+      business_grain: 一条记录 = 一次巡查工单
+      source_business_objects:
+        - 巡查工单
+        - 预警事件
+        - 养户
+        - 猪群
+
+# ==========================================
+# FACT设计
+# ==========================================
+
+fact_design:
+  decision:
+    status: mandatory
+    reason: >
+      预警事件和巡查工单是核心业务事件，需要沉淀为可复用的FACT模型，
+      避免ADS直接依赖WENSEAS源表，保证指标口径统一。
+  facts:
+    - fact_name: fact_wens_alert_event
+      business_process: 预警事件产生
+      fact_type: transaction_fact
+      grain: 一条记录 = 一次生产异常预警事件
+      source_tables:
+        - table_name: wens_production_anomaly
+          source_layer: WENSEAS
+      related_dimensions:
+        - dim_wens_farmer
+        - dim_wens_flock
+        - dim_wens_alert_metric
+        - dim_wens_alarm_level
+      supported_metrics:
+        - M01
+        - M02
+        - M03
+        - M04
+        - M05
+        - M06
+        - M07
+        - M08
+        - T01
+        - T02
+        - T04
+        - T05
+      measures:
+        - alert_duration（持续时长）
+        - alert_value（触发预警时数值）
+      fact_design_reason: >
+        预警事件是核心业务过程，12个指标依赖此数据。
+        沉淀为FACT可避免ADS直接依赖WENSEAS，保证口径统一。
+
+    - fact_name: fact_wens_patrol_ticket
+      business_process: 巡查处理
+      fact_type: transaction_fact
+      grain: 一条记录 = 一次巡查工单
+      source_tables:
+        - table_name: wens_patrol_ticket
+          source_layer: WENSEAS
+      related_dimensions:
+        - dim_wens_farmer
+        - dim_wens_flock
+        - dim_wens_alert_metric
+        - dim_wens_alarm_level
+      supported_metrics:
+        - M09
+        - T03
+        - 异常原因分布
+        - 策略有效性
+      measures:
+        - 巡查工单状态（退化维度）
+      fact_design_reason: >
+        巡查工单是独立业务过程，支撑有效干涉率和归因分析。
+        与预警事件FACT通过预警单据编号关联。
+
+# ==========================================
+# 维度设计
+# ==========================================
+
+dimension_design:
+  dimensions:
+    - dimension_name: dim_wens_farmer
+      dimension_type: standard_dimension
+      source_tables:
+        - wens_rearer_farm_pig
+      usage_description: 养户维度，提供养户属性信息，被预警FACT和巡查FACT复用
+
+    - dimension_name: dim_wens_flock
+      dimension_type: standard_dimension
+      source_tables:
+        - wens_recbrlrflk_pig
+      usage_description: 猪群维度，提供猪群属性信息，被预警FACT和巡查FACT复用
+
+    - dimension_name: dim_wens_alert_metric
+      dimension_type: standard_dimension
+      source_tables:
+        - 业务规则定义（枚举映射）
+      usage_description: 预警指标维度，1-9枚举值映射到中文名称
+
+    - dimension_name: dim_wens_alarm_level
+      dimension_type: standard_dimension
+      source_tables:
+        - 业务规则定义（枚举映射）
+      usage_description: 预警等级维度，1-4枚举值映射到中文名称
+
+    - dimension_name: dim_wens_alert_status
+      dimension_type: standard_dimension
+      source_tables:
+        - 业务规则定义（枚举映射）
+      usage_description: 预警状态维度，1-3枚举值映射到中文名称
+
+    - dimension_name: dim_wens_patrol_status
+      dimension_type: standard_dimension
+      source_tables:
+        - 业务规则定义（枚举映射）
+      usage_description: 巡查工单状态维度，1-3枚举值映射到中文名称
+
+    - dimension_name: dim_wens_handle_strategy
+      dimension_type: standard_dimension
+      source_tables:
+        - wens_handle_strategy
+      usage_description: 应对策略维度，提供风险大类、风险项、对应策略信息
+
+# ==========================================
+# DWS设计
+# ==========================================
+
+dws_design:
+  decision:
+    status: unnecessary
+    reason: >
+      当前指标数量较少（15个），且大部分为明细类或BI端计算类指标。
+      FACT可直接支撑ADS，无公共汇总逻辑需要复用。
+      暂不建设DWS层，避免过度设计。
+    alternative_solution: >
+      后续如指标数量增加或出现多个ADS复用相同统计逻辑时，
+      可建设DWS层沉淀公共汇总（如按月+组织的预警汇总）。
+
+# ==========================================
+# ADS设计
+# ==========================================
+
+ads_design:
+  tables:
+    - ads_name: ads_wens_alert_analysis
+      business_theme: 预警事件分析
+      business_purpose: >
+        支撑预警现状监控、趋势分析和效果评估。
+        包含预警明细数据，支持按组织、养户、猪群、预警指标、预警等级等维度分析。
+      detail_grain: 一条记录 = 一次已审核的生产异常预警事件
+      rollup_grains:
+        - 月份+组织
+        - 月份+组织+预警指标
+        - 月份+组织+预警等级
+        - 月份+组织+养户
+        - 日+组织
+        - 组织
+        - 全量
+      dimensions:
+        - 日期（预警时间）
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+        - 预警状态
+        - 是否巡查
+      source_models:
+        - fact_wens_alert_event
+        - dim_wens_farmer
+        - dim_wens_flock
+      metrics:
+        - M01 生产异常农户总数（COUNT DISTINCT 养户）
+        - M02 持续中预警农户数（COUNT DISTINCT 养户 WHERE 持续中）
+        - M03 持续中-需巡查农户数
+        - M04 持续中-无需巡查农户数
+        - M05 今日仅通知农户数
+        - M06 预警关闭占比（BI端计算）
+        - M07 平均持续时长（AVG）
+        - M08 7天复发率（BI端计算）
+        - T01 按预警指标趋势
+        - T02 按预警等级趋势
+        - T04 平均持续时长趋势
+        - T05 7天复发率趋势
+      served_pages:
+        - 核心指标卡
+        - 持续中预警细分
+        - 按预警指标趋势（折线图）
+        - 按预警等级趋势（柱状图）
+        - 预警清单
+        - 本月预警效果评估
+        - 趋势折线图
+      ads_split_reason: >
+        预警分析具有独立的维度体系（日期+组织+养户+猪群+预警指标+预警等级+预警状态），
+        与巡查分析的维度体系不同，需独立设计。
+
+    - ads_name: ads_wens_patrol_analysis
+      business_theme: 巡查工单分析
+      business_purpose: >
+        支撑有效干涉率分析和归因分析。
+        包含巡查工单明细及关联的应对策略信息。
+      detail_grain: 一条记录 = 一次已审核的巡查工单
+      rollup_grains:
+        - 月份+组织
+        - 月份+组织+风险大类
+        - 月份+组织+风险项
+        - 组织
+        - 全量
+      dimensions:
+        - 日期（创建时间）
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+        - 巡查工单状态
+        - 风险大类
+        - 风险项
+        - 对应策略
+        - 是否执行
+        - 是否采纳
+      source_models:
+        - fact_wens_patrol_ticket
+        - dim_wens_farmer
+        - dim_wens_flock
+        - dim_wens_handle_strategy
+      metrics:
+        - M09 有效干涉率（BI端计算）
+        - T03 有效干涉率趋势
+        - 异常原因分布（BI端计算）
+        - 策略有效性（BI端计算）
+      served_pages:
+        - 异常原因分布
+        - 策略有效性
+        - 有效干涉率趋势
+      ads_split_reason: >
+        巡查分析的维度体系包含风险大类、风险项、策略等独特维度，
+        与预警分析维度不同，需独立设计。
+
+    - ads_name: ads_wens_alert_detail
+      business_theme: 异常农户清单
+      business_purpose: >
+        支撑异常农户清单展示，提供预警明细关联养户和猪群属性。
+      detail_grain: 一条记录 = 一次已审核的生产异常预警事件
+      rollup_grains:
+        - 组织
+        - 组织+养户
+      dimensions:
+        - 组织
+        - 养户
+        - 猪群编码
+        - 管理员
+        - 加权进苗日期
+        - 苗总数量
+        - 预警指标
+        - 预警等级
+        - 预警状态
+        - 触发预警时数值
+        - 预警时间
+      source_models:
+        - fact_wens_alert_event
+        - dim_wens_farmer
+        - dim_wens_flock
+      metrics: []
+      served_pages:
+        - 异常农户清单
+      ads_split_reason: >
+        异常农户清单为明细展示，维度与预警分析ADS相同，
+        但为独立页面需求，且需要关联养户和猪群的扩展属性（管理员、进苗信息），
+        作为预警分析ADS的明细补充。
+
+# ==========================================
+# 指标承载关系
+# ==========================================
+
+metric_mapping:
+  metrics:
+    - metric_id: M01
+      metric_name: 生产异常农户总数
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按养户去重
+      reason: 明细数据在ADS，BI端按需聚合
+
+    - metric_id: M02
+      metric_name: 持续中预警农户数
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按养户去重，筛选持续中
+      reason: 明细数据在ADS，BI端按需聚合
+
+    - metric_id: M03
+      metric_name: 持续中-需巡查农户数
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按养户去重，筛选持续中且需巡查
+      reason: 明细数据在ADS，BI端按需聚合
+
+    - metric_id: M04
+      metric_name: 持续中-无需巡查农户数
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按养户去重，筛选持续中且无需巡查
+      reason: 明细数据在ADS，BI端按需聚合
+
+    - metric_id: M05
+      metric_name: 今日仅通知农户数
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按养户去重，筛选仅通知且当日
+      reason: 明细数据在ADS，BI端按需聚合
+
+    - metric_id: M06
+      metric_name: 预警关闭占比
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 预警状态维度
+      reason: BI端计算占比，ADS提供含状态的明细数据
+
+    - metric_id: M07
+      metric_name: 平均持续时长
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 持续时长度量
+      reason: ADS提供含持续时长的明细数据，BI端计算平均值
+
+    - metric_id: M08
+      metric_name: 7天复发率
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 按组织+养户+猪群+预警指标+等级分组
+      reason: BI端计算复发率，ADS提供含分组维度的明细数据
+
+    - metric_id: M09
+      metric_name: 有效干涉率
+      target_model: ads_wens_patrol_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 巡查工单状态维度
+      reason: BI端计算占比，ADS提供含状态的明细数据
+
+    - metric_id: C01
+      metric_name: 异常农户占比
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 养户维度
+      reason: 分子来自预警ADS，分母来自养户维度表，BI端计算占比
+
+    - metric_id: T01
+      metric_name: 按预警指标趋势
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 日期+预警指标+养户
+      reason: ADS提供含日期和预警指标的明细，BI端按月聚合
+
+    - metric_id: T02
+      metric_name: 按预警等级趋势
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 日期+预警等级+养户
+      reason: ADS提供含日期和预警等级的明细，BI端按月聚合
+
+    - metric_id: T03
+      metric_name: 有效干涉率趋势
+      target_model: ads_wens_patrol_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 日期+工单状态
+      reason: ADS提供含日期和工单状态的明细，BI端按月计算占比
+
+    - metric_id: T04
+      metric_name: 平均持续时长趋势
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 日期+持续时长
+      reason: ADS提供含日期和持续时长的明细，BI端按月计算平均值
+
+    - metric_id: T05
+      metric_name: 7天复发率趋势
+      target_model: ads_wens_alert_analysis
+      target_layer: ADS
+      calculation_layer: ADS
+      metric_dimension_basis: 日期+组织+养户+猪群+预警指标+等级
+      reason: BI端按月切片计算复发率，ADS提供含完整分组维度的明细
+
+# ==========================================
+# 设计决策记录
+# ==========================================
+
+design_decision:
+  decisions:
+    - decision_point: 是否建设FACT层？
+      decision: 建设两个FACT表
+      reason: >
+        预警事件和巡查工单是两个独立的业务过程，需要沉淀为可复用的FACT模型。
+        避免ADS直接依赖WENSEAS源表，保证指标口径统一。
+      alternative: 不建设FACT，ADS直接依赖WENSEAS（会造成烟囱式开发）
+
+    - decision_point: 是否建设DWS层？
+      decision: 暂不建设
+      reason: >
+        当前指标数量较少（15个），大部分为明细类或BI端计算类指标。
+        FACT可直接支撑ADS，无公共汇总逻辑需要复用。
+      alternative: 后续指标增加时建设DWS沉淀公共汇总
+
+    - decision_point: ADS如何拆分？
+      decision: 按维度体系拆分为3个ADS
+      reason: >
+        预警分析和巡查分析具有不同的维度体系（预警指标/等级 vs 风险大类/策略），
+        需独立设计。异常农户清单为明细展示需求，独立设计。
+      alternative: 按页面数量拆分为多个ADS（错误做法）
+
+    - decision_point: 计算类指标在哪层计算？
+      decision: BI端计算
+      reason: >
+        占比、比率等计算类指标（M06、M08、M09、C01）由前端BI计算，
+        数仓模型只提供可用于计算的明细数据。
+      alternative: 在ADS层预计算（增加模型复杂度）
+
+    - decision_point: 维度表是否独立建设？
+      decision: 独立建设维度表
+      reason: >
+        养户、猪群等维度被多个FACT复用，独立建设可保证口径统一。
+        枚举类维度（预警指标、等级、状态）通过映射表实现。
+      alternative: 维度退化到FACT中（不利于复用）
+
+# ==========================================
+# 下一阶段输入 Mapping Agent
+# ==========================================
+
+mapping_input:
+  confirmed_models:
+    - table_name: fact_wens_alert_event
+      layer: FACT
+    - table_name: fact_wens_patrol_ticket
+      layer: FACT
+    - table_name: dim_wens_farmer
+      layer: DIM
+    - table_name: dim_wens_flock
+      layer: DIM
+    - table_name: dim_wens_alert_metric
+      layer: DIM
+    - table_name: dim_wens_alarm_level
+      layer: DIM
+    - table_name: dim_wens_alert_status
+      layer: DIM
+    - table_name: dim_wens_patrol_status
+      layer: DIM
+    - table_name: dim_wens_handle_strategy
+      layer: DIM
+    - table_name: ads_wens_alert_analysis
+      layer: ADS
+    - table_name: ads_wens_patrol_analysis
+      layer: ADS
+    - table_name: ads_wens_alert_detail
+      layer: ADS
+  mapping_requirements:
+    - WENSEAS → FACT 字段级映射
+    - FACT → ADS 字段级映射
+    - 维度表字段映射
+    - 枚举值映射

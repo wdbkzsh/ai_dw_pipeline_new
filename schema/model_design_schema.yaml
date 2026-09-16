@@ -1,0 +1,539 @@
+# ==========================================
+# Model Design Schema
+# Version: 1.2
+#
+# Purpose:
+# Model Design Agent Output Contract
+#
+# Scope:
+# 业务过程识别
+# 数仓模型设计
+# FACT设计
+# DWS设计判断
+# ADS设计
+# 模型复用设计
+# 模型设计决策
+#
+# NOT INCLUDE:
+# 字段级Mapping
+# SQL开发
+# ==========================================
+
+
+project:
+
+  project_id:
+    type: string
+    required: true
+
+  project_name:
+    type: string
+    required: true
+
+  business_domain:
+    type: string
+    required: false
+
+
+# ==========================================
+# 输入来源
+# ==========================================
+
+input_reference:
+
+  business_analysis:
+    type: string
+    default: output/01_business_analysis/business_metric_analysis.yaml
+
+  data_analysis:
+    type: string
+    default: output/02_data_analysis/
+
+
+# ==========================================
+# 模型建设策略
+# ==========================================
+
+model_strategy:
+
+  modeling_method:
+    type: string
+
+  target_layers:
+
+    type: array
+
+    items:
+
+      enum:
+
+        - DWD
+        - FACT
+        - DWS
+        - ADS
+
+  design_summary:
+    type: string
+
+
+model_design_principles:
+
+  type: array
+
+  items:
+
+    type: string
+
+
+# ==========================================
+# 业务过程设计
+# ==========================================
+
+business_process:
+
+  processes:
+
+    type: array
+
+    items:
+
+      process_name:
+        type: string
+
+      process_type:
+
+        enum:
+
+          - event
+          - snapshot
+          - transaction
+
+
+      modeling_pattern:
+
+        enum:
+
+          - fact_event
+          - fact_snapshot
+          - fact_accumulating
+
+
+      business_grain:
+        type: string
+
+
+      source_business_objects:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+# ==========================================
+# FACT设计
+# ==========================================
+
+fact_design:
+
+  decision:
+
+    status:
+
+      enum:
+
+        - mandatory
+        - optional
+        - unnecessary
+
+
+    reason:
+
+      type: string
+
+
+  facts:
+
+    type: array
+
+    items:
+
+
+      fact_name:
+
+        type: string
+
+
+      business_process:
+
+        type: string
+
+
+      fact_type:
+
+        enum:
+
+          - transaction_fact
+          - accumulating_snapshot
+          - periodic_snapshot
+
+
+      grain:
+
+        type: string
+
+
+      source_tables:
+
+        type: array
+
+        items:
+
+
+          table_name:
+
+            type: string
+
+
+          source_layer:
+
+            type: string
+
+
+      related_dimensions:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      supported_metrics:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      measures:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      fact_design_reason:
+
+        type: string
+
+
+# ==========================================
+# 维度设计
+# ==========================================
+
+dimension_design:
+
+  dimensions:
+
+    type: array
+
+    items:
+
+
+      dimension_name:
+
+        type: string
+
+
+      dimension_type:
+
+        enum:
+
+          - standard_dimension
+          - degenerate_dimension
+
+
+      source_tables:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      usage_description:
+
+        type: string
+
+
+# ==========================================
+# DWS设计
+# ==========================================
+
+dws_design:
+
+  decision:
+
+    status:
+
+      enum:
+
+        - mandatory
+        - optional
+        - unnecessary
+
+
+    reason:
+
+      type: string
+
+
+    alternative_solution:
+
+      type: string
+
+
+  tables:
+
+    type: array
+
+    items:
+
+
+      dws_name:
+
+        type: string
+
+
+      grain:
+
+        type: string
+
+
+      dimensions:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      metrics:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+# ==========================================
+# ADS设计
+# ==========================================
+
+ads_design:
+
+  tables:
+
+    type: array
+
+    items:
+
+
+      ads_name:
+
+        type: string
+
+
+      business_theme:
+
+        type: string
+
+
+      business_purpose:
+
+        type: string
+
+
+      detail_grain:
+
+        type: string
+
+
+      rollup_grains:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      dimensions:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      source_models:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      metrics:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      served_pages:
+
+        type: array
+
+        items:
+
+          type: string
+
+
+      ads_split_reason:
+
+        type: string
+
+
+# ==========================================
+# 指标承载关系
+# ==========================================
+
+metric_mapping:
+
+  metrics:
+
+    type: array
+
+    items:
+
+
+      metric_id:
+
+        type: string
+
+
+      metric_name:
+
+        type: string
+
+
+      target_model:
+
+        type: string
+
+
+      target_layer:
+
+        enum:
+
+          - FACT
+          - DWS
+          - ADS
+
+
+      calculation_layer:
+
+        enum:
+
+          - FACT
+          - DWS
+          - ADS
+
+
+      metric_dimension_basis:
+
+        type: string
+
+
+      reason:
+
+        type: string
+
+
+# ==========================================
+# 设计决策记录
+# ==========================================
+
+design_decision:
+
+  decisions:
+
+    type: array
+
+    items:
+
+
+      decision_point:
+
+        type: string
+
+
+      decision:
+
+        type: string
+
+
+      reason:
+
+        type: string
+
+
+      alternative:
+
+        type: string
+
+
+# ==========================================
+# 下一阶段输入 Mapping Agent
+# ==========================================
+
+mapping_input:
+
+  confirmed_models:
+
+    type: array
+
+    items:
+
+
+      table_name:
+
+        type: string
+
+
+      layer:
+
+        type: string
+
+
+  mapping_requirements:
+
+    type: array
+
+    items:
+
+      type: string

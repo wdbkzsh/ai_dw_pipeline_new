@@ -1,664 +1,771 @@
-# Business Metric Analysis
+# ==========================================
+# 农户生产异常预警分析 - 业务指标分析
 # Version: 1.0
-# Generated: 2026-09-07
+# ==========================================
 
-# 项目信息
 project:
   project_id: wens_dw_project
-  project_name: 农户生产异常预警分析看板
-  business_domain: 养殖生产管理
-  description: >
-    建立农户生产异常预警分析体系，监控养户生产过程中的异常指标，
-    支持管理人员进行原因分析和干预决策，提升养殖生产效率。
+  project_name: 农户生产异常预警分析
+  business_domain: 育肥作业管理
 
-# 输入资料信息
-source_context:
-  requirement_documents:
-    - name: 农户生产异常预警分析报告口径.xlsx
-      type: xlsx
+# ==========================================
+# 1. 项目业务理解
+# ==========================================
 
-  prototype_files:
-    - name: 农户生产异常运营看板 （分公司）(0818).pdf
-      type: pdf
+business_context:
+  background: >
+    温氏集团育肥作业管理业务域，通过采集农户生产过程中的死淘率、采食量等核心指标，
+    自动触发生产异常预警，并关联巡查工单进行闭环管理。
+    当前需要建设农户生产异常预警分析看板（分公司维度），实现异常监控、归因分析和效果评估。
+  business_goal:
+    - 实时监控各分公司农户生产异常现状（异常农户数、占比、预警分布）
+    - 分析异常原因分布及策略有效性
+    - 评估预警关闭率、7天复发率、有效干涉率等核心运营指标
+    - 按月追踪核心指标变化趋势
+  service_users:
+    - 分公司管理人员
+    - 运营管理人员
+    - 业务决策层
 
-  metadata_files:
-    - name: wens_production_anomaly.yaml
-      type: yaml
-    - name: wens_rearer_farm_pig.yaml
-      type: yaml
-    - name: wens_recbrlrflk_pig.yaml
-      type: yaml
-    - name: wens_handle_strategy.yaml
-      type: yaml
-    - name: wens_patrol_ticket.yaml
-      type: yaml
+# ==========================================
+# 2. 页面分析
+# ==========================================
 
-# 业务理解
-business_overview:
-  business_goal: >
-    通过监控农户生产异常指标，及时发现生产异常，
-    分析异常原因，评估干预效果，提升养殖生产效率。
-
-  business_process:
-    - step_no: 1
-      step_name: 异常监控
-      description: 系统根据预设规则自动监控生产指标，触发异常预警
-
-    - step_no: 2
-      step_name: 预警通知
-      description: 预警信息通知相关人员，支持巡查决策
-
-    - step_no: 3
-      step_name: 巡查处理
-      description: 创建巡查工单，执行现场检查和处理
-
-    - step_no: 4
-      step_name: 原因分析
-      description: 分析异常原因，记录风险类型和应对策略
-
-    - step_no: 5
-      step_name: 效果评估
-      description: 评估干预措施有效性，优化管理策略
-
-# 原型分析
-dashboard_analysis:
+page_analysis:
   pages:
-    - page_id: P001
-      page_name: 农户生产异常现状
-      purpose: 展示当前农户生产异常的整体情况
+    - page_id: P01
+      page_name: 农户生产异常运营看板（分公司）
+      business_purpose: 面向分公司的生产异常运营监控大屏，包含核心指标卡、预警分布、归因分析、效果评估和趋势追踪
       components:
-        - component_type: metric_card
-          related_metrics:
-            - M001
-            - M002
-            - M003
-            - M004
-            - M005
+        - component_name: 核心指标卡-生产异常农户总数
+          display_metrics:
+            - 生产异常农户总数
+            - 异常农户占比
+            - 持续中预警农户数
+            - 今日仅通知农户数
+          display_grain: 月度/当日
+        - component_name: 持续中预警细分
+          display_metrics:
+            - 持续中-需巡查农户数
+            - 持续中-无需巡查农户数
+          display_grain: 当日
+        - component_name: 按预警指标趋势（折线图）
+          display_metrics:
+            - 各预警指标下异常养户数
+          display_grain: 月度
+        - component_name: 按预警等级趋势（柱状图）
+          display_metrics:
+            - 各预警等级下异常养户数
+          display_grain: 月度
+        - component_name: 预警清单
+          display_metrics:
+            - 组织、养户、猪群编码、预警指标、预警等级、触发预警时数值、预警时间、预警状态
+          display_grain: 单条预警记录
+        - component_name: 异常原因分布
+          display_metrics:
+            - 按风险大类+风险项分类的占比
+          display_grain: 月度
+        - component_name: 策略有效性
+          display_metrics:
+            - 策略采纳率
+          display_grain: 月度
+        - component_name: 异常农户清单
+          display_metrics:
+            - 组织、养户、猪群编码、管理员、加权进苗日期、苗总数量、预警指标
+          display_grain: 单条预警记录
+        - component_name: 本月预警效果评估
+          display_metrics:
+            - 预警关闭占比
+            - 较上月
+            - 平均持续时长
+            - 7天复发率
+          display_grain: 月度
+        - component_name: 趋势折线图
+          display_metrics:
+            - 有效干涉率月度趋势
+            - 平均持续时长月度趋势
+            - 7天复发率月度趋势
+          display_grain: 月度
 
-        - component_type: line_chart
-          related_metrics:
-            - T001
+# ==========================================
+# 3. 业务对象识别
+# ==========================================
 
-        - component_type: bar_chart
-          related_metrics:
-            - T002
+business_objects:
+  objects:
+    - object_name: 养户
+      business_definition: 与温氏签订合作协议的养殖户，是生产管理的基本单元
+      business_grain: 一个养户档案 = 一个独立的养殖合作主体
+      core_attributes:
+        - 养户编码
+        - 养户档案名称
+        - 组织
+        - 养殖场名称
+        - 管理员
+        - 饲养状态
+        - 开户人姓名
+    - object_name: 猪群
+      business_definition: 一个养户下的一批养殖猪群，是生产跟踪的基本单位
+      business_grain: 一个畜禽档案 = 一个养户下的一批猪群
+      core_attributes:
+        - 编码
+        - 名称
+        - 养户档案名称
+        - 饲养品种
+        - 猪群状态
+        - 首次进苗日期
+        - 存栏量
+        - 饲养批次
+    - object_name: 预警事件
+      business_definition: 当农户生产过程中死淘率或采食量等指标触发阈值时，系统自动产生的预警记录
+      business_grain: 一条预警单据 = 一次生产异常预警事件
+      core_attributes:
+        - 单据编号
+        - 组织
+        - 养户
+        - 猪群编码
+        - 预警指标
+        - 预警等级
+        - 触发预警时数值
+        - 预警时间
+        - 预警状态
+        - 持续时长
+        - 是否巡查
+    - object_name: 巡查工单
+      business_definition: 针对持续中预警，由运营人员发起的现场巡查处理单据
+      business_grain: 一条巡查工单 = 一次巡查处理事件
+      core_attributes:
+        - 单据编号
+        - 组织
+        - 养户
+        - 猪群编码
+        - 预警指标
+        - 预警等级
+        - 预警状态
+        - 巡查工单状态
+        - 预警单据编号
+        - 执行人
+    - object_name: 应对策略
+      business_definition: 针对异常原因预定义的风险分类和应对策略参考库
+      business_grain: 一条策略记录 = 一条风险-策略映射关系
+      core_attributes:
+        - 名称
+        - 组织
+        - 组织层级
+        - 风险大类
+        - 风险项
+        - 对应策略
 
-        - component_type: table
-          related_metrics:
-            - M001
-            - M002
-            - M005
+# ==========================================
+# 4. 业务过程分析
+# ==========================================
 
-    - page_id: P002
-      page_name: 归因及措施分析
-      purpose: 分析异常原因分布，评估应对策略有效性
-      components:
-        - component_type: pie_chart
-          related_metrics:
-            - C005
+business_process_analysis:
+  processes:
+    - process_name: 预警事件产生
+      process_type: event
+      business_object: 预警事件
+      process_grain: 一条预警事件（wens_production_anomaly 一行）
+      process_description: >
+        系统根据生产数据（死淘率、采食量）与预设阈值对比，自动生成预警记录。
+        每条记录关联一个养户的一个猪群，标记预警指标、等级、触发值和时间。
+    - process_name: 巡查处理
+      process_type: event
+      business_object: 巡查工单
+      process_grain: 一条巡查工单（wens_patrol_ticket 一行）
+      process_description: >
+        针对持续中预警，运营人员创建巡查工单，记录风险分析、应对策略和执行结果。
+        工单通过预警单据编号关联原始预警事件。包含两个分录：原因分析分录和自定义风险分录。
 
-        - component_type: pie_chart
-          related_metrics:
-            - C006
+# ==========================================
+# 5. 指标分析
+# ==========================================
 
-        - component_type: table
-          related_metrics:
-            - M001
-
-    - page_id: P003
-      page_name: 效果评估
-      purpose: 评估预警干预效果，分析关键指标趋势
-      components:
-        - component_type: metric_card
-          related_metrics:
-            - C002
-            - M009
-            - C004
-            - C003
-
-        - component_type: line_chart
-          related_metrics:
-            - T003
-            - T004
-            - T005
-
-# 业务实体
-business_entities:
-  - entity_id: E001
-    entity_name: 养户
-    description: 参与养殖合作的农户，是生产管理的基本单位
-    business_grain: 一个养户对应一个或多个养殖场
-    key_attributes:
-      - 养户编码
-      - 养户名称
-      - 管理员
-      - 饲养状态
-      - 业务组织
-
-  - entity_id: E002
-    entity_name: 猪群
-    description: 养户管理下的一个批次猪群，是生产核算的基本单位
-    business_grain: 一个养户可以有多个猪群
-    key_attributes:
-      - 猪群编码
-      - 养户
-      - 饲养品种
-      - 猪群状态
-      - 首次进苗日期
-      - 存栏量
-
-  - entity_id: E003
-    entity_name: 生产异常预警
-    description: 系统根据预设规则自动触发的生产异常告警
-    business_grain: 一条预警记录对应一个养户的一个猪群
-    key_attributes:
-      - 单据编号
-      - 养户
-      - 猪群编码
-      - 预警指标
-      - 预警等级
-      - 预警状态
-      - 预警时间
-
-  - entity_id: E004
-    entity_name: 巡查工单
-    description: 针对生产异常预警创建的处理工单
-    business_grain: 一条工单对应一条预警记录
-    key_attributes:
-      - 单据编号
-      - 养户
-      - 猪群编码
-      - 执行人
-      - 工单状态
-      - 预警单据编号
-
-  - entity_id: E005
-    entity_name: 应对策略
-    description: 针对异常原因制定的处理措施
-    business_grain: 按组织、风险类型配置
-    key_attributes:
-      - 策略编码
-      - 策略名称
-      - 组织
-      - 风险大类
-      - 风险项
-      - 对应策略
-
-# 指标体系
 metrics:
   atomic_metrics:
-    - metric_id: M001
-      metric_name: 生产异常农户数
-      metric_type: atomic
-      definition: 当前存在生产异常的养户数量
+    - metric_id: M01
+      metric_name: 生产异常农户总数
+      business_definition: 当前处于持续中和仅通知状态的预警涉及的养户去重数
       statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fk_wens_basedatafield) where fk_wens_status in ('1','3')
-      business_rule:
+      statistic_grain: 养户
+      calculation_logic: 筛选预警状态为持续中或仅通知的预警记录，按养户去重计数
+      business_rules:
         - 预警状态为"持续中"或"仅通知"
         - 按养户去重
-
-    - metric_id: M002
+    - metric_id: M02
       metric_name: 持续中预警农户数
-      metric_type: atomic
-      definition: 预警状态为持续中的养户数量
+      business_definition: 当前处于持续中状态的预警涉及的养户去重数
       statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fk_wens_basedatafield) where fk_wens_status = '1'
-      business_rule:
+      statistic_grain: 养户
+      calculation_logic: 筛选预警状态为持续中的预警记录，按养户去重计数
+      business_rules:
         - 预警状态为"持续中"
         - 按养户去重
-
-    - metric_id: M003
-      metric_name: 需巡查农户数
-      metric_type: atomic
-      definition: 预警状态为持续中且需要巡查的养户数量
+    - metric_id: M03
+      metric_name: 持续中-需巡查农户数
+      business_definition: 持续中预警中是否巡查为是的养户去重数
       statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fk_wens_basedatafield) where fk_wens_status = '1' and fk_wens_is_generate_ticke = '是'
-      business_rule:
+      statistic_grain: 养户
+      calculation_logic: 筛选预警状态为持续中且是否巡查为是的预警记录，按养户去重计数
+      business_rules:
         - 预警状态为"持续中"
         - 是否巡查为"是"
         - 按养户去重
-
-    - metric_id: M004
-      metric_name: 无需巡查农户数
-      metric_type: atomic
-      definition: 预警状态为持续中且无需巡查的养户数量
+    - metric_id: M04
+      metric_name: 持续中-无需巡查农户数
+      business_definition: 持续中预警中是否巡查为否的养户去重数
       statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fk_wens_basedatafield) where fk_wens_status = '1' and fk_wens_is_generate_ticke = '否'
-      business_rule:
+      statistic_grain: 养户
+      calculation_logic: 筛选预警状态为持续中且是否巡查为否的预警记录，按养户去重计数
+      business_rules:
         - 预警状态为"持续中"
         - 是否巡查为"否"
         - 按养户去重
-
-    - metric_id: M005
+    - metric_id: M05
       metric_name: 今日仅通知农户数
-      metric_type: atomic
-      definition: 当前时间下预警状态为仅通知的养户数量
+      business_definition: 当日预警状态为仅通知的养户去重数
       statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fk_wens_basedatafield) where fk_wens_status = '3'
-      business_rule:
-        - 预警状态为"仅通知"（fk_wens_status = '3'）
+      statistic_grain: 养户
+      calculation_logic: 筛选预警状态为仅通知的预警记录，按养户去重计数
+      business_rules:
+        - 预警状态为"仅通知"
         - 按养户去重
-        - 不按时间筛选，按当前状态筛选
-
-    - metric_id: M006
-      metric_name: 总养户数
-      metric_type: atomic
-      definition: 当前有效的养户总数
-      statistic_object: 养户
-      grain:
-        - 养户
-      calculation_logic: count(distinct fmasterid) where fenable = '1' and fk_wens_status = '1' and fstatus = 'C'
-      business_rule:
-        - 使用状态为"可用"（fenable = '1'）
-        - 饲养状态为"在养"（fk_wens_status = '1'）
-        - 单据状态为已审核（fstatus = 'C'）
-        - 按养户去重
-
-    - metric_id: M007
-      metric_name: 预警关闭数
-      metric_type: atomic
-      definition: 预警状态为已关闭的记录数
-      statistic_object: 预警记录
-      grain:
-        - 预警记录
-      calculation_logic: count(*) where fk_wens_status = '2'
-      business_rule:
+    - metric_id: M06
+      metric_name: 预警关闭占比
+      business_definition: 预警状态为已关闭的预警数占总预警数的比例
+      statistic_object: 预警事件
+      statistic_grain: 预警事件
+      calculation_logic: 预警状态为已关闭的记录数 / 全部预警记录数
+      business_rules:
         - 预警状态为"已关闭"
-
-    - metric_id: M008
-      metric_name: 预警总数
-      metric_type: atomic
-      definition: 预警记录总数
-      statistic_object: 预警记录
-      grain:
-        - 预警记录
-      calculation_logic: count(*)
-      business_rule:
-        - 统计所有预警记录
-
-    - metric_id: M009
+    - metric_id: M07
       metric_name: 平均持续时长
-      metric_type: atomic
-      definition: 预警持续时长的平均值
-      statistic_object: 预警记录
-      grain:
-        - 预警记录
-      calculation_logic: avg(fk_wens_duration)
-      business_rule:
-        - 取持续时长字段的平均值
-
-    - metric_id: M010
-      metric_name: 巡查工单已完成数
-      metric_type: atomic
-      definition: 巡查工单状态为已完成的记录数
+      business_definition: 预警记录的持续时长平均值
+      statistic_object: 预警事件
+      statistic_grain: 预警事件
+      calculation_logic: 对所有预警记录的持续时长字段取平均值
+      business_rules: []
+    - metric_id: M08
+      metric_name: 7天复发率
+      business_definition: 7天内同一组织+养户+猪群+预警指标+等级再次触发预警的占比
+      statistic_object: 预警事件
+      statistic_grain: 预警事件
+      calculation_logic: >
+        按组织+养户+猪群+预警指标+预警等级分组，
+        判断7天内是否有两条及以上预警，计算有复发的组数/总组数
+      business_rules:
+        - 分组条件：组织+养户+猪群编码+预警指标+预警等级
+        - 时间间隔：两条预警触发时间 ≤ 7天
+    - metric_id: M09
+      metric_name: 有效干涉率
+      business_definition: 巡查工单状态为已完成的占比
       statistic_object: 巡查工单
-      grain:
-        - 巡查工单
-      calculation_logic: count(*) where fk_wens_atrol_ticket_stat = '2'
-      business_rule:
+      statistic_grain: 巡查工单
+      calculation_logic: 巡查工单状态为已完成的记录数 / 全部巡查工单记录数
+      business_rules:
         - 巡查工单状态为"已完成"
 
-    - metric_id: M011
-      metric_name: 巡查工单总数
-      metric_type: atomic
-      definition: 巡查工单总数
-      statistic_object: 巡查工单
-      grain:
-        - 巡查工单
-      calculation_logic: count(*)
-      business_rule:
-        - 统计所有巡查工单
-
-    - metric_id: M012
-      metric_name: 复发记录数
-      metric_type: atomic
-      definition: 7天内复发的预警记录数
-      statistic_object: 预警记录
-      grain:
-        - 预警记录
-      calculation_logic: >
-        根据组织、养户、猪群、预警指标、预警等级判断7天内复发
-      business_rule:
-        - 组织、养户、猪群编码、预警指标、预警等级一致
-        - 预警触发时间相隔不超过7天
-        - 不排除"已关闭"状态
-
-    - metric_id: M013
-      metric_name: 风险大类记录数
-      metric_type: atomic
-      definition: 按风险大类统计的记录数
-      statistic_object: 巡查工单分录
-      grain:
-        - 巡查工单分录
-      calculation_logic: count(*) group by risk_category
-      business_rule:
-        - 按风险大类分组统计
-
-    - metric_id: M014
-      metric_name: 策略采纳记录数
-      metric_type: atomic
-      definition: 策略是否采纳为"是"的记录数
-      statistic_object: 巡查工单分录
-      grain:
-        - 巡查工单分录
-      calculation_logic: count(*) where is_adopt = '1'
-      business_rule:
-        - 是否采纳为"是"
-
-  derived_metrics:
-    - metric_id: C001
-      metric_name: 生产异常农户占比
-      definition: 异常农户占总养户的比例
-      formula: M001 / M006
-      components:
-        - metric_id: M001
-          role: numerator
-        - metric_id: M006
-          role: denominator
-      grain:
-        - 养户
-
-    - metric_id: C002
-      metric_name: 预警关闭占比
-      definition: 已关闭预警占总预警的比例
-      formula: M007 / M008
-      components:
-        - metric_id: M007
-          role: numerator
-        - metric_id: M008
-          role: denominator
-      grain:
-        - 预警记录
-
-    - metric_id: C003
-      metric_name: 有效干涉率
-      definition: 巡查工单完成率
-      formula: 有已完成工单的预警数 / 预警总数
-      components:
-        - metric_id: M010
-          role: numerator
-        - metric_id: M008
-          role: denominator
-      grain:
-        - 预警记录
-
-    - metric_id: C004
-      metric_name: 7天复发率
-      definition: 7天内复发预警的比例
-      formula: M012 / M008
-      components:
-        - metric_id: M012
-          role: numerator
-        - metric_id: M008
-          role: denominator
-      grain:
-        - 预警记录
-
-    - metric_id: C005
-      metric_name: 风险大类占比
-      definition: 各风险大类的分布比例
-      formula: M013 / 预警总数
-      components:
-        - metric_id: M013
-          role: numerator
-        - metric_id: M008
-          role: denominator
-      grain:
-        - 预警记录
-
-    - metric_id: C006
-      metric_name: 策略采纳率
-      definition: 策略被采纳的比例
-      formula: M014 / 预警总数
-      components:
-        - metric_id: M014
-          role: numerator
-        - metric_id: M008
-          role: denominator
-      grain:
-        - 预警记录
+  composite_metrics:
+    - metric_id: C01
+      metric_name: 异常农户占比
+      business_definition: 生产异常农户数占总养户数的比例
+      formula: 生产异常农户总数 / 总养户数
+      component_metrics:
+        - M01
+        - 总养户数
 
   trend_metrics:
-    - metric_id: T001
-      metric_name: 预警类型趋势
-      time_dimension: 月份
-      analysis_dimension:
+    - metric_id: T01
+      metric_name: 按预警指标趋势
+      statistic_object: 养户
+      statistic_grain: 养户（按预警指标分组）
+      display_time_grain: 月度
+      analysis_dimensions:
         - 预警指标
-      measure_metric: 异常养户数
-
-    - metric_id: T002
-      metric_name: 预警等级趋势
-      time_dimension: 月份
-      analysis_dimension:
+    - metric_id: T02
+      metric_name: 按预警等级趋势
+      statistic_object: 养户
+      statistic_grain: 养户（按预警等级分组）
+      display_time_grain: 月度
+      analysis_dimensions:
         - 预警等级
-      measure_metric: 异常养户数
-
-    - metric_id: T003
-      metric_name: 平均持续时长趋势
-      time_dimension: 月份
-      analysis_dimension: []
-      measure_metric: 平均持续时长
-
-    - metric_id: T004
-      metric_name: 7天复发率趋势
-      time_dimension: 月份
-      analysis_dimension: []
-      measure_metric: 7天复发率
-
-    - metric_id: T005
+    - metric_id: T03
       metric_name: 有效干涉率趋势
-      time_dimension: 月份
-      analysis_dimension: []
-      measure_metric: 有效干涉率
+      statistic_object: 巡查工单
+      statistic_grain: 巡查工单
+      display_time_grain: 月度
+      analysis_dimensions: []
+    - metric_id: T04
+      metric_name: 平均持续时长趋势
+      statistic_object: 预警事件
+      statistic_grain: 预警事件
+      display_time_grain: 月度
+      analysis_dimensions: []
+    - metric_id: T05
+      metric_name: 7天复发率趋势
+      statistic_object: 预警事件
+      statistic_grain: 预警事件
+      display_time_grain: 月度
+      analysis_dimensions: []
 
-# 数据支撑初判
-data_support_analysis:
-  - metric_id: M001
-    support_status: supported
-    possible_sources:
-      tables:
+# ==========================================
+# 6. 指标业务粒度分析
+# ==========================================
+
+metric_grain_analysis:
+  metrics:
+    - metric_id: M01
+      metric_name: 生产异常农户总数
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度/当日
+      calculation_basis: 预警状态为持续中或仅通知
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+        - 预警状态
+      aggregation_path: >
+        生产异常预警事件 → 过滤预警状态为持续中、仅通知 → 按养户去重 → 统计异常农户数量
+      calculation_logic_summary: 按养户去重计数，筛选持续中和仅通知状态
+
+    - metric_id: M02
+      metric_name: 持续中预警农户数
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度/当日
+      calculation_basis: 预警状态为持续中
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 过滤预警状态为持续中 → 按养户去重 → 统计持续中农户数量
+      calculation_logic_summary: 按养户去重计数，筛选持续中状态
+
+    - metric_id: M03
+      metric_name: 持续中-需巡查农户数
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度/当日
+      calculation_basis: 预警状态为持续中且是否巡查为是
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 过滤预警状态为持续中且是否巡查为是 → 按养户去重 → 统计需巡查农户数量
+      calculation_logic_summary: 按养户去重计数，筛选持续中且需巡查
+
+    - metric_id: M04
+      metric_name: 持续中-无需巡查农户数
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度/当日
+      calculation_basis: 预警状态为持续中且是否巡查为否
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 过滤预警状态为持续中且是否巡查为否 → 按养户去重 → 统计无需巡查农户数量
+      calculation_logic_summary: 按养户去重计数，筛选持续中且无需巡查
+
+    - metric_id: M05
+      metric_name: 今日仅通知农户数
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件
+      display_grain: 当日
+      calculation_basis: 预警状态为仅通知
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 过滤预警状态为仅通知 → 按养户去重 → 统计仅通知农户数量
+      calculation_logic_summary: 按养户去重计数，筛选仅通知状态
+
+    - metric_id: C01
+      metric_name: 异常农户占比
+      analysis_object: 养户
+      business_statistic_grain: 养户
+      source_grain: 一条生产异常预警事件 + 养户档案全量
+      display_grain: 月度/当日
+      calculation_basis: 生产异常农户总数 / 总养户数
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        ① 生产异常预警事件 → 过滤持续中、仅通知 → 按养户去重 = 异常农户数
+        → ② 养猪养户档案全量 = 总养户数
+        → ①/② = 占比
+      calculation_logic_summary: 异常农户数除以总养户数
+
+    - metric_id: T01
+      metric_name: 按预警指标趋势
+      analysis_object: 养户
+      business_statistic_grain: 养户（按预警指标分组）
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 按预警指标+养户去重统计
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 预警指标
+        - 养户
+        - 猪群
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 过滤持续中、仅通知 → 按预警指标+养户去重 → 按月统计各预警指标下异常养户数
+      calculation_logic_summary: 按预警指标分组，每月各指标下异常养户去重数
+
+    - metric_id: T02
+      metric_name: 按预警等级趋势
+      analysis_object: 养户
+      business_statistic_grain: 养户（按预警等级分组）
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 按预警等级+养户去重统计
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 预警等级
+        - 养户
+        - 猪群
+        - 预警指标
+      aggregation_path: >
+        生产异常预警事件 → 过滤持续中、仅通知 → 按预警等级+养户去重 → 按月统计各预警等级下异常养户数
+      calculation_logic_summary: 按预警等级分组，每月各等级下异常养户去重数
+
+    - metric_id: M06
+      metric_name: 预警关闭占比
+      analysis_object: 预警事件
+      business_statistic_grain: 预警事件
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 预警状态为已关闭
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        生产异常预警事件 → 统计预警状态为已关闭的记录数 → / 全部预警记录数 → 预警关闭占比
+      calculation_logic_summary: 已关闭预警数除以总预警数
+
+    - metric_id: M07
+      metric_name: 平均持续时长
+      analysis_object: 预警事件
+      business_statistic_grain: 预警事件
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 持续时长字段取平均值
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        生产异常预警事件 → 取持续时长字段 → 计算平均值
+      calculation_logic_summary: 对持续时长字段求平均
+
+    - metric_id: M08
+      metric_name: 7天复发率
+      analysis_object: 预警事件
+      business_statistic_grain: 预警事件（按组织+养户+猪群+预警指标+等级分组）
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 组织+养户+猪群+预警指标+等级一致，时间间隔≤7天
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 按组织+养户+猪群+预警指标+预警等级分组
+        → 组内按预警时间排序 → 判断相邻预警时间间隔是否≤7天
+        → 有复发的组数/总组数 = 7天复发率
+      calculation_logic_summary: 同组7天内再次触发预警的组数占比
+
+    - metric_id: M09
+      metric_name: 有效干涉率
+      analysis_object: 巡查工单
+      business_statistic_grain: 巡查工单
+      source_grain: 一条巡查工单
+      display_grain: 月度
+      calculation_basis: 巡查工单状态为已完成
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        巡查工单 → 统计巡查工单状态为已完成的记录数 → / 全部巡查工单记录数 → 有效干涉率
+      calculation_logic_summary: 已完成工单数除以总工单数
+
+    - metric_id: T03
+      metric_name: 有效干涉率趋势
+      analysis_object: 巡查工单
+      business_statistic_grain: 巡查工单
+      source_grain: 一条巡查工单
+      display_grain: 月度
+      calculation_basis: 按月统计已完成工单占比
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        巡查工单 → 按月统计已完成工单占比 → 月度折线图
+      calculation_logic_summary: 每月已完成工单占比的月度趋势
+
+    - metric_id: T04
+      metric_name: 平均持续时长趋势
+      analysis_object: 预警事件
+      business_statistic_grain: 预警事件
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 按月计算持续时长平均值
+      drill_down_dimensions:
+        - 日期
+        - 组织
+      aggregation_path: >
+        生产异常预警事件 → 按月计算持续时长平均值 → 月度折线图
+      calculation_logic_summary: 每月平均持续时长的月度趋势
+
+    - metric_id: T05
+      metric_name: 7天复发率趋势
+      analysis_object: 预警事件
+      business_statistic_grain: 预警事件（按组织+养户+猪群+预警指标+等级分组）
+      source_grain: 一条生产异常预警事件
+      display_grain: 月度
+      calculation_basis: 按月计算7天复发率
+      drill_down_dimensions:
+        - 日期
+        - 组织
+        - 养户
+        - 猪群
+        - 预警指标
+        - 预警等级
+      aggregation_path: >
+        生产异常预警事件 → 按月计算7天复发率 → 月度折线图
+      calculation_logic_summary: 每月7天复发率的月度趋势
+
+# ==========================================
+# 7. 业务规则
+# ==========================================
+
+business_rules:
+  rules:
+    - rule_id: R01
+      rule_description: 预警状态定义：1=持续中，2=已关闭，3=仅通知
+      related_metrics:
+        - M01
+        - M02
+        - M03
+        - M04
+        - M05
+        - M06
+      priority: confirmed
+    - rule_id: R02
+      rule_description: 巡查工单状态定义：1=未完成，2=已完成，3=未完成(过期)
+      related_metrics:
+        - M09
+        - T03
+      priority: confirmed
+    - rule_id: R03
+      rule_description: >
+        7天复发率分组条件：组织+养户+猪群编码+预警指标+预警等级一致，
+        两条预警触发时间间隔≤7天即为复发
+      related_metrics:
+        - M08
+        - T05
+      priority: confirmed
+    - rule_id: R04
+      rule_description: >
+        预警关闭占比 = 预警状态为已关闭的记录数 / 全部预警记录数
+      related_metrics:
+        - M06
+      priority: confirmed
+    - rule_id: R05
+      rule_description: >
+        策略有效性 = 采纳的分录条数 / 全部分录条数
+      related_metrics: []
+      priority: confirmed
+    - rule_id: R06
+      rule_description: 预警指标定义：1=两周死淘率，2=五周死淘率，3=单日死淘率，4=连续2天死淘率，5=连续3天死淘率，6=连续4天死淘率，7=单日采食量，8=连续2天采食量，9=连续3天采食量
+      related_metrics:
+        - T01
+      priority: confirmed
+    - rule_id: R07
+      rule_description: 预警等级定义：1=一级告警，2=二级告警，3=三级告警，4=四级告警
+      related_metrics:
+        - T02
+      priority: confirmed
+    - rule_id: R08
+      rule_description: >
+        数据关联规则：预警→巡查工单通过预警单据编号(wens_warning_billno)关联；
+        预警→养户通过fk_wens_basedatafield关联wens_rearer_farm_pig；
+        预警→猪群通过fk_wens_recbrlrflk_pig关联wens_recbrlrflk_pig
+      related_metrics:
+        - M01
+        - M02
+        - M09
+      priority: confirmed
+
+# ==========================================
+# 8. 数据支撑初判
+# ==========================================
+
+data_support_initial:
+  metrics:
+    - metric_id: M01
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_basedatafield
-        - fk_wens_status
-    missing_information: []
-
-  - metric_id: M002
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: M02
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_basedatafield
-        - fk_wens_status
-    missing_information: []
-
-  - metric_id: M003
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: M03
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_basedatafield
-        - fk_wens_status
-        - fk_wens_is_generate_ticke
-    missing_information: []
-
-  - metric_id: M004
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: M04
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_basedatafield
-        - fk_wens_status
-        - fk_wens_is_generate_ticke
-    missing_information: []
-
-  - metric_id: M005
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: M05
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_basedatafield
-        - fk_wens_status
-    missing_information: []
-
-  - metric_id: M006
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: C01
+      support_status: supported
+      possible_source_objects:
+        - wens_production_anomaly
         - wens_rearer_farm_pig
-      fields:
-        - fmasterid
-        - fenable
-        - fk_wens_status
-        - fstatus
-    missing_information: []
-
-  - metric_id: M007
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information:
+        - 总养户数统计口径（是否包含空栏、停养、销户状态的养户）
+    - metric_id: M06
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_status
-    missing_information: []
-
-  - metric_id: M008
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: M07
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fbillno
-    missing_information: []
-
-  - metric_id: M009
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information:
+        - 持续时长字段单位确认（天/小时）
+    - metric_id: M08
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - fk_wens_duration
-    missing_information: []
-
-  - metric_id: M010
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information:
+        - 分组字段和时间计算逻辑确认
+    - metric_id: M09
+      support_status: supported
+      possible_source_objects:
         - wens_patrol_ticket
-      fields:
-        - fk_wens_atrol_ticket_stat
-    missing_information: []
-
-  - metric_id: M011
-    support_status: supported
-    possible_sources:
-      tables:
-        - wens_patrol_ticket
-      fields:
-        - fbillno
-    missing_information: []
-
-  - metric_id: M012
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: T01
+      support_status: supported
+      possible_source_objects:
         - wens_production_anomaly
-      fields:
-        - forgid
-        - fk_wens_basedatafield
-        - fk_wens_recbrlrflk_pig
-        - fk_wens_alert_metric
-        - fk_wens_alarm_level
-        - fk_wens_alarm_time
-    missing_information: []
-
-  - metric_id: M013
-    support_status: supported
-    possible_sources:
-      tables:
+      missing_information: []
+    - metric_id: T02
+      support_status: supported
+      possible_source_objects:
+        - wens_production_anomaly
+      missing_information: []
+    - metric_id: T03
+      support_status: supported
+      possible_source_objects:
         - wens_patrol_ticket
-      fields:
-        - tk_wens_risk_item_entry.fk_wens_risk_item
-    missing_information: []
+      missing_information: []
+    - metric_id: T04
+      support_status: supported
+      possible_source_objects:
+        - wens_production_anomaly
+      missing_information: []
+    - metric_id: T05
+      support_status: supported
+      possible_source_objects:
+        - wens_production_anomaly
+      missing_information: []
 
-  - metric_id: M014
-    support_status: supported
-    possible_sources:
-      tables:
-        - wens_patrol_ticket
-      fields:
-        - tk_wens_risk_item_entry.fk_wens_custom_is_adopt
-    missing_information: []
+# ==========================================
+# 9. 待确认问题
+# ==========================================
 
-# 问题确认结果
-business_questions:
-  - question_id: Q001
-    related_metric:
-      - M006
-      - C001
-    question: 总养户数是统计所有养户，还是只统计"在养"状态的养户？
-    impact: 影响"生产异常农户占比"的计算
-    status: confirmed
-    answer: 统计所有使用状态为"可用"的养户（fenable = '1'）并且饲养状态为"在养"的养户（fk_wens_status = '1'）并且单据状态为已审核（fstatus='C'）
-
-  - question_id: Q002
-    related_metric:
-      - M012
-      - C004
-    question: 7天复发率的判断条件中，"预警状态一致"是否需要排除"已关闭"状态？
-    impact: 影响复发率的计算准确性
-    status: confirmed
-    answer: 不需要排除，包含所有状态，只要7天内有相同条件的预警即为复发
-
-  - question_id: Q003
-    related_metric:
-      - M005
-    question: "今日仅通知"是指预警时间在今天，还是预警状态变更为"仅通知"的时间在今天？
-    impact: 影响指标的统计口径
-    status: confirmed
-    answer: 当前时间下预警状态为"仅通知"的养户数（不按时间筛选，按当前状态筛选）
-
-  - question_id: Q004
-    related_metric:
-      - T001
-      - T002
-    question: 预警类型趋势和预警等级趋势的时间粒度是按天、按周还是按月？
-    impact: 影响趋势图的展示效果
-    status: confirmed
-    answer: 按月粒度统计
-
-  - question_id: Q005
-    related_metric:
-      - C003
-    question: 有效干涉率是按巡查工单数量计算，还是按预警记录数量计算？
-    impact: 影响指标的计算逻辑
-    status: confirmed
-    answer: 按照预警记录数量计算
-
-  - question_id: Q006
-    related_metric:
-      - C005
-    question: 风险大类占比的分母是预警总数还是巡查工单分录总数？
-    impact: 影响占比计算
-    status: confirmed
-    answer: 按照预警总数计算
-
-# 确认状态
-confirmation:
-  status: confirmed
-  confirmed_by: 业务方
-  confirmed_time: 2026-09-03
+confirmation_questions:
+  questions:
+    - question_id: Q01
+      question: 总养户数统计口径：是否包含饲养状态为空栏中、已停养、销户的养户？
+      impact: 异常农户占比的分母计算
+      status: pending
+      answer: ""
+    - question_id: Q02
+      question: 7天复发率是否需要额外考虑预警状态筛选？
+      impact: 7天复发率计算准确性
+      status: pending
+      answer: ""
+    - question_id: Q03
+      question: 策略有效性中"忽略"对应的是哪个字段的哪个值？
+      impact: 策略采纳率计算
+      status: pending
+      answer: ""
+    - question_id: Q04
+      question: 异常原因分布取哪个分录的数据？还是两个分录合并统计？
+      impact: 归因分析准确性
+      status: pending
+      answer: ""
+    - question_id: Q05
+      question: 预警关闭占比是按月统计还是全量统计？
+      impact: 指标计算范围
+      status: pending
+      answer: ""
+    - question_id: Q06
+      question: 持续时长字段（fk_wens_duration）的单位是天还是小时？
+      impact: 平均持续时长展示
+      status: pending
+      answer: ""
+    - question_id: Q07
+      question: 较上月是指环比差值还是环比增长率？
+      impact: 效果评估展示方式
+      status: pending
+      answer: ""
+    - question_id: Q08
+      question: 趋势折线图展示的时间范围是多少？最近6个月还是12个月？
+      impact: 页面展示
+      status: pending
+      answer: ""
+    - question_id: Q09
+      question: 异常农户清单是否也需要筛选预警状态（持续中+仅通知）？
+      impact: 清单筛选逻辑
+      status: pending
+      answer: ""
+    - question_id: Q10
+      question: 异常农户清单的猪群编码是否直接取预警表的fk_wens_recbrlrflk_pig？
+      impact: 数据关联
+      status: pending
+      answer: ""
